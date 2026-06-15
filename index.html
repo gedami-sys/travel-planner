@@ -563,7 +563,7 @@ window.handleImport = function(e){
 function uid(){ return '_'+Math.random().toString(36).substr(2,9); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('ro-RO',{day:'numeric',month:'short',year:'numeric'}); }
-function tripDuration(t){ if(!t.start||!t.end) return ''; const d=Math.round((new Date(t.end)-new Date(t.start))/(1000*60*60*24)); return d+' zile'; }
+function tripDuration(t){ if(!t.start||!t.end) return ''; const d=Math.round((new Date(t.end+'T12:00:00')-new Date(t.start+'T12:00:00'))/(1000*60*60*24)); return d+' zile'; }
 const COLORS=['tc-0','tc-1','tc-2','tc-3','tc-4','tc-5'];
 
 // ═══════════════════════════
@@ -1034,7 +1034,7 @@ function date3Html(isoVal, onChangeExpr){
 
 function calcNights(checkin,checkout){
   if(!checkin||!checkout) return 0;
-  const d=Math.round((new Date(checkout)-new Date(checkin))/(1000*60*60*24));
+  const d=Math.round((new Date(checkout+'T12:00:00')-new Date(checkin+'T12:00:00'))/(1000*60*60*24));
   return d>0?d:0;
 }
 
