@@ -9,6 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Travel">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>Travel Planner</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --bg:#0f1117;--bg2:#171b26;--bg3:#1e2333;--bg4:#252a3a;
@@ -232,6 +234,14 @@ textarea{resize:vertical;min-height:56px;}
 @media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr;}#screen-trips{padding:20px 12px;}#trip-content{padding:14px;}}
 input[type=time]{-webkit-appearance:none;appearance:none;}
 
+
+/* MAPS */
+.mini-map{height:200px;border-radius:var(--rs);border:1px solid var(--border);margin-top:8px;z-index:1;}
+.map-full{height:calc(100vh - 200px);border-radius:var(--r);border:1px solid var(--border);}
+.leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);}
+.leaflet-popup-tip{background:var(--bg2);}
+.leaflet-popup-content{color:var(--text);font-size:13px;font-family:system-ui,sans-serif;}
+
 /* DATE WIDGET */
 .date3{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;}
 .date3 input{text-align:center;padding:7px 4px;min-width:0;}
@@ -325,6 +335,7 @@ input[type=time]{-webkit-appearance:none;appearance:none;}
     <button class="ttab"    id="ttab-todo"      onclick="showTTab('todo')">✅ To-Do</button>
     <button class="ttab"    id="ttab-budget"    onclick="showTTab('budget')">💰 Buget</button>
     <button class="ttab"    id="ttab-assistant" onclick="showTTab('assistant')">🤖 Asistent</button>
+    <button class="ttab"    id="ttab-map"       onclick="showTTab('map')">🗺 Hartă</button>
   </div>
   <div id="trip-content">
     <div class="tpane on" id="tpane-persons"></div>
@@ -336,6 +347,7 @@ input[type=time]{-webkit-appearance:none;appearance:none;}
     <div class="tpane"    id="tpane-todo"></div>
     <div class="tpane"    id="tpane-budget"></div>
     <div class="tpane"    id="tpane-assistant"></div>
+    <div class="tpane"    id="tpane-map"></div>
   </div>
 </div>
 
@@ -563,7 +575,7 @@ window.handleImport = function(e){
 function uid(){ return '_'+Math.random().toString(36).substr(2,9); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('ro-RO',{day:'numeric',month:'short',year:'numeric'}); }
-function tripDuration(t){ if(!t.start||!t.end) return ''; const d=Math.round((new Date(t.end+'T12:00:00')-new Date(t.start+'T12:00:00'))/(1000*60*60*24)); return d+' zile'; }
+function tripDuration(t){ if(!t.start||!t.end) return ''; const d=Math.round((new Date(t.end)-new Date(t.start))/(1000*60*60*24)); return d+' zile'; }
 const COLORS=['tc-0','tc-1','tc-2','tc-3','tc-4','tc-5'];
 
 // ═══════════════════════════
@@ -715,6 +727,7 @@ function renderTab(name){
   if(name==='budget')    renderBudget();
   if(name==='calendar')  renderCalendar();
   if(name==='assistant') renderAssistant();
+  if(name==='map') renderMapTab();
 }
 
 // ═══════════════════════════
@@ -1034,7 +1047,7 @@ function date3Html(isoVal, onChangeExpr){
 
 function calcNights(checkin,checkout){
   if(!checkin||!checkout) return 0;
-  const d=Math.round((new Date(checkout+'T12:00:00')-new Date(checkin+'T12:00:00'))/(1000*60*60*24));
+  const d=Math.round((new Date(checkout)-new Date(checkin))/(1000*60*60*24));
   return d>0?d:0;
 }
 
@@ -1142,6 +1155,22 @@ function bodyAccom(a,i){
     </div>
   </div>
   <div class="fg mt8"><label>Note</label><textarea oninput="trip().accom[${i}].notes=this.value;save()">${esc(a.notes||'')}</textarea></div>
+  <div class="divlabel">📍 Locație pe hartă</div>
+  <div class="grid3">
+    <div class="fg"><label>Latitudine</label>
+      <input type="number" step="any" value="${a.lat||''}" placeholder="ex: 48.8566"
+        oninput="trip().accom[${i}].lat=parseFloat(this.value)||'';save();refreshMiniMap('minimap-ac-${a.id}',trip().accom[${i}].lat,trip().accom[${i}].lng,trip().accom[${i}].hotel)">
+    </div>
+    <div class="fg"><label>Longitudine</label>
+      <input type="number" step="any" value="${a.lng||''}" placeholder="ex: 2.3522"
+        oninput="trip().accom[${i}].lng=parseFloat(this.value)||'';save();refreshMiniMap('minimap-ac-${a.id}',trip().accom[${i}].lat,trip().accom[${i}].lng,trip().accom[${i}].hotel)">
+    </div>
+    <div class="fg"><label>Extrage din link Google Maps</label>
+      <input type="url" placeholder="Lipește link Google Maps..."
+        oninput="extractCoordsFromUrlAccom(this.value,${i})">
+    </div>
+  </div>
+  ${a.lat&&a.lng?`<div id="minimap-ac-${a.id}" class="mini-map"></div>`:''}
   <div class="divlabel">👥 Persoane & Camere</div>
   ${persHtml}`;
 }
@@ -1292,7 +1321,24 @@ function bodyObj(o,i){
   <div class="fg mt8"><label>Note</label><textarea oninput="trip().objectives[${i}].notes=this.value;save()">${esc(o.notes||'')}</textarea></div>
   ${o.timeStart&&o.travelMin?`<div style="background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:var(--rs);padding:8px 12px;font-size:13px;color:var(--yellow);margin-top:8px">
     ⏰ Pleacă la: <strong>${subtractMinutes(o.timeStart,parseInt(o.travelMin))}</strong> (${o.travelMin} min deplasare)
-  </div>`:''}`;
+  </div>`:''}
+  <div class="divlabel">📍 Locație</div>
+  <div class="grid3">
+    <div class="fg"><label>Latitudine</label>
+      <input type="number" step="any" value="${o.lat||''}" placeholder="ex: 48.8566"
+        oninput="trip().objectives[${i}].lat=parseFloat(this.value)||'';save();refreshMiniMap('minimap-obj-${o.id}',trip().objectives[${i}].lat,trip().objectives[${i}].lng,trip().objectives[${i}].title)">
+    </div>
+    <div class="fg"><label>Longitudine</label>
+      <input type="number" step="any" value="${o.lng||''}" placeholder="ex: 2.3522"
+        oninput="trip().objectives[${i}].lng=parseFloat(this.value)||'';save();refreshMiniMap('minimap-obj-${o.id}',trip().objectives[${i}].lat,trip().objectives[${i}].lng,trip().objectives[${i}].title)">
+    </div>
+    <div class="fg"><label>Extrage din link Google Maps</label>
+      <input type="url" placeholder="Lipește link Google Maps..." 
+        oninput="extractCoordsFromUrl(this.value,${i})">
+    </div>
+  </div>
+  ${o.lat&&o.lng?`<div id="minimap-obj-${o.id}" class="mini-map"></div>`:''}
+  `;
 }
 
 window.addObj = function(prefill){
@@ -1687,7 +1733,9 @@ window.exportPDF = function(){
   const t=trip(); if(!t){ alert('Selectează o excursie.'); return; }
   const w=window.open('','_blank');
   let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(t.name||'Travel Plan')}</title>
-  <style>body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:30px;line-height:1.5}h1{font-size:20px}h2{font-size:15px;background:#e8f0fe;padding:5px 10px;margin:18px 0 8px;border-left:4px solid #4f8ef7}h3{font-size:13px;color:#444;margin:10px 0 4px}table{width:100%;border-collapse:collapse;margin-bottom:10px}td,th{border:1px solid #ddd;padding:4px 7px}th{background:#f5f5f5}.done{text-decoration:line-through;color:#888}</style></head><body>`;
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:30px;line-height:1.5}h1{font-size:20px}h2{font-size:15px;background:#e8f0fe;padding:5px 10px;margin:18px 0 8px;border-left:4px solid #4f8ef7}h3{font-size:13px;color:#444;margin:10px 0 4px}table{width:100%;border-collapse:collapse;margin-bottom:10px}td,th{border:1px solid #ddd;padding:4px 7px}th{background:#f5f5f5}.done{text-decoration:line-through;color:#888}</style></head><body>`;
   h+=`<h1>✈ ${esc(t.name||'Travel Plan')}</h1>`;
   h+=`<p>${fmtDateRo(t.start)} → ${fmtDateRo(t.end)} | ${esc(t.destinations||'')} | ${(t.persons||[]).length} persoane</p>`;
   h+=`<h2>👥 Persoane</h2><table><tr><th>Nume</th><th>Note</th></tr>`;
@@ -1704,6 +1752,189 @@ window.exportPDF = function(){
   w.document.write(h); w.document.close();
   setTimeout(()=>w.print(),600);
 }
+
+
+// ═══════════════════════════
+// MAPS — LEAFLET
+// ═══════════════════════════
+const miniMaps = {};
+
+function refreshMiniMap(containerId, lat, lng, title){
+  if(!lat||!lng) return;
+  setTimeout(()=>{
+    const el = document.getElementById(containerId);
+    if(!el) return;
+    if(miniMaps[containerId]){
+      miniMaps[containerId].setView([lat,lng],15);
+      return;
+    }
+    const map = L.map(containerId, {zoomControl:true}).setView([lat,lng],15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap'
+    }).addTo(map);
+    const icon = L.divIcon({
+      className:'',
+      html:`<div style="background:#4f8ef7;border:2px solid white;border-radius:50%;width:14px;height:14px;box-shadow:0 2px 4px rgba(0,0,0,0.4)"></div>`,
+      iconSize:[14,14],iconAnchor:[7,7]
+    });
+    L.marker([lat,lng],{icon}).addTo(map).bindPopup(`<strong>${title||'Locație'}</strong>`);
+    miniMaps[containerId] = map;
+  }, 100);
+}
+
+function extractCoordsFromUrl(url, objIdx){
+  if(!url) return;
+  const coords = parseCoordsFromGMaps(url);
+  if(coords){
+    trip().objectives[objIdx].lat = coords.lat;
+    trip().objectives[objIdx].lng = coords.lng;
+    save(); renderObj();
+  }
+}
+
+function extractCoordsFromUrlAccom(url, acIdx){
+  if(!url) return;
+  const coords = parseCoordsFromGMaps(url);
+  if(coords){
+    trip().accom[acIdx].lat = coords.lat;
+    trip().accom[acIdx].lng = coords.lng;
+    save(); renderAccom();
+  }
+}
+
+function parseCoordsFromGMaps(url){
+  // Formats: @lat,lng or /lat,lng or ?q=lat,lng or ll=lat,lng
+  const patterns = [
+    /@(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+    /[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+    /[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+    /\/(-?\d+\.?\d*),(-?\d+\.?\d*)/,
+  ];
+  for(const pat of patterns){
+    const m = url.match(pat);
+    if(m) return {lat:parseFloat(m[1]), lng:parseFloat(m[2])};
+  }
+  return null;
+}
+
+// Global map tab
+let globalMap = null;
+let globalMarkers = [];
+
+function renderMapTab(){
+  const t = trip(); if(!t) return;
+  const el = document.getElementById('tpane-map');
+  
+  const objs = (t.objectives||[]).filter(o=>o.lat&&o.lng);
+  const accoms = (t.accom||[]).filter(a=>a.lat&&a.lng);
+  const total = objs.length + accoms.length;
+
+  let h = `<div class="stitle">🗺 Hartă <span class="badge">${total} locații</span></div>`;
+  
+  if(!total){
+    h += `<div class="empty"><div class="emo">🗺</div><p>Adaugă coordonate la obiective și cazări pentru a le vedea pe hartă.</p><p style="margin-top:8px;font-size:12px">Mergi la 📍 Obiective sau 🏨 Cazare și completează câmpurile Latitudine / Longitudine sau lipește un link Google Maps.</p></div>`;
+    el.innerHTML = h;
+    return;
+  }
+
+  // Legend
+  h += `<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;font-size:12px">
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#fb923c;border-radius:50%;display:inline-block"></span> Obiective (${objs.length})</span>
+    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#34d399;border-radius:50%;display:inline-block"></span> Cazări (${accoms.length})</span>
+  </div>`;
+  
+  h += `<div id="global-map" class="map-full"></div>`;
+  
+  // List of locations
+  h += `<div style="margin-top:16px">`;
+  if(objs.length){
+    h += `<div class="divlabel">📍 Obiective cu locație</div>`;
+    objs.forEach(o=>{
+      h += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;font-size:13px">
+        <span style="color:var(--orange)">📍</span>
+        <span style="flex:1">${esc(o.title||'Obiectiv')}</span>
+        <span style="color:var(--text3);font-size:11px">${o.lat}, ${o.lng}</span>
+        <a href="https://www.google.com/maps?q=${o.lat},${o.lng}" target="_blank" class="btn btn-ghost btn-sm">↗ Maps</a>
+      </div>`;
+    });
+  }
+  if(accoms.length){
+    h += `<div class="divlabel">🏨 Cazări cu locație</div>`;
+    accoms.forEach(a=>{
+      h += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;font-size:13px">
+        <span style="color:var(--green)">🏨</span>
+        <span style="flex:1">${esc(a.hotel||'Cazare')}</span>
+        <span style="color:var(--text3);font-size:11px">${a.lat}, ${a.lng}</span>
+        <a href="https://www.google.com/maps?q=${a.lat},${a.lng}" target="_blank" class="btn btn-ghost btn-sm">↗ Maps</a>
+      </div>`;
+    });
+  }
+  h += `</div>`;
+  
+  el.innerHTML = h;
+  
+  // Init global map
+  setTimeout(()=>{
+    const mapEl = document.getElementById('global-map');
+    if(!mapEl) return;
+    
+    if(globalMap){ globalMap.remove(); globalMap=null; }
+    
+    const allPoints = [
+      ...objs.map(o=>({lat:o.lat,lng:o.lng,title:o.title||'Obiectiv',type:'obj',date:o.date,timeStart:o.timeStart})),
+      ...accoms.map(a=>({lat:a.lat,lng:a.lng,title:a.hotel||'Cazare',type:'accom'}))
+    ];
+    
+    const center = allPoints.length===1 
+      ? [allPoints[0].lat, allPoints[0].lng]
+      : [allPoints.reduce((s,p)=>s+p.lat,0)/allPoints.length, allPoints.reduce((s,p)=>s+p.lng,0)/allPoints.length];
+    
+    globalMap = L.map('global-map').setView(center, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+      attribution:'© OpenStreetMap'
+    }).addTo(globalMap);
+    
+    // Add markers
+    allPoints.forEach((p,idx)=>{
+      const color = p.type==='accom' ? '#34d399' : '#fb923c';
+      const icon = L.divIcon({
+        className:'',
+        html:`<div style="background:${color};border:2px solid white;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700">${p.type==='obj'?idx+1:'H'}</div>`,
+        iconSize:[16,16],iconAnchor:[8,8]
+      });
+      const popup = `<strong>${p.title}</strong>${p.date?'<br>'+p.date+' '+( p.timeStart||''):''}`;
+      L.marker([p.lat,p.lng],{icon}).addTo(globalMap).bindPopup(popup);
+    });
+    
+    // Draw route between objectives in date order
+    const sortedObjs = [...objs].sort((a,b)=>{
+      if(a.date&&b.date) return a.date.localeCompare(b.date);
+      return 0;
+    });
+    if(sortedObjs.length>1){
+      const latlngs = sortedObjs.map(o=>[o.lat,o.lng]);
+      L.polyline(latlngs, {color:'#4f8ef7',weight:2,opacity:0.6,dashArray:'6,6'}).addTo(globalMap);
+    }
+    
+    // Fit bounds
+    if(allPoints.length>1){
+      const bounds = L.latLngBounds(allPoints.map(p=>[p.lat,p.lng]));
+      globalMap.fitBounds(bounds, {padding:[30,30]});
+    }
+  }, 200);
+}
+
+// Init mini-maps after render
+function initMiniMapsAfterRender(){
+  const t = trip(); if(!t) return;
+  (t.objectives||[]).forEach(o=>{
+    if(o.lat&&o.lng) refreshMiniMap('minimap-obj-'+o.id, o.lat, o.lng, o.title);
+  });
+  (t.accom||[]).forEach(a=>{
+    if(a.lat&&a.lng) refreshMiniMap('minimap-ac-'+a.id, a.lat, a.lng, a.hotel);
+  });
+}
+
 
 // ═══════════════════════════
 // GLOBAL EXPOSE
@@ -1730,6 +1961,10 @@ window.calcNights = calcNights;
 window.subtractMinutes = subtractMinutes;
 window.ttLabel = ttLabel;
 window.fmtDateRo = fmtDateRo;
+window.extractCoordsFromUrl = extractCoordsFromUrl;
+window.extractCoordsFromUrlAccom = extractCoordsFromUrlAccom;
+window.refreshMiniMap = refreshMiniMap;
+window.renderMapTab = renderMapTab;
 window.dToIso = dToIso;
 
 // ═══════════════════════════
