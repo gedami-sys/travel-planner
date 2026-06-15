@@ -562,7 +562,7 @@ window.handleImport = function(e){
 // ═══════════════════════════
 function uid(){ return '_'+Math.random().toString(36).substr(2,9); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('ro-RO',{day:'numeric',month:'short',year:'numeric'}); }
+function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('ro-RO',{day:'numeric',month:'short',year:'numeric'}); }
 function tripDuration(t){ if(!t.start||!t.end) return ''; const d=Math.round((new Date(t.end)-new Date(t.start))/(1000*60*60*24)); return d+' zile'; }
 const COLORS=['tc-0','tc-1','tc-2','tc-3','tc-4','tc-5'];
 
@@ -1473,8 +1473,8 @@ function renderBudget(){
 // ═══════════════════════════
 function datesBetween(start,end){
   if(!start||!end) return [];
-  const days=[]; let cur=new Date(start+'T00:00:00');
-  const last=new Date(end+'T00:00:00');
+  const days=[]; let cur=new Date(start+'T12:00:00');
+  const last=new Date(end+'T12:00:00');
   while(cur<=last){ days.push(cur.toISOString().slice(0,10)); cur.setDate(cur.getDate()+1); }
   return days;
 }
@@ -1493,7 +1493,7 @@ function renderCalendar(){
   let h=`<div class="stitle">📅 Calendar <span class="badge">${days.length} zile</span></div>`;
 
   days.forEach((iso,di)=>{
-    const d=new Date(iso+'T00:00:00');
+    const d=new Date(iso+'T12:00:00');
     const dayName=DAY_NAMES[d.getDay()];
     const dayLabel=`${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
     const events=[];
