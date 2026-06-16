@@ -801,6 +801,7 @@ window.showTTab = function(name){
   currentTab=name;
   document.querySelectorAll('.tpane').forEach(p=>p.classList.remove('on'));
   document.getElementById('tpane-'+name).classList.add('on');
+  document.getElementById('trip-content').scrollTop = 0;
 
   // Update bottom nav
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('on'));
