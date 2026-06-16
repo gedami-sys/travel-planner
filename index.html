@@ -798,10 +798,12 @@ function updateTripHeader(){
 const MAIN_TABS=['persons','transport','accom','calendar'];
 
 window.showTTab = function(name){
+  // Reset scroll immediately
+  const tc = document.getElementById('trip-content');
+  if(tc) tc.scrollTop = 0;
   currentTab=name;
   document.querySelectorAll('.tpane').forEach(p=>p.classList.remove('on'));
   document.getElementById('tpane-'+name).classList.add('on');
-  document.getElementById('trip-content').scrollTop = 0;
 
   // Update bottom nav
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('on'));
