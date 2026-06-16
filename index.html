@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="ro">
+<head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#4f8ef7">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#4f8ef7" id="theme-color-meta">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Travel">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
 <title>Travel Planner</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+/* ═══ THEME VARIABLES ═══ */
 :root{
   --bg:#0f1117;--bg2:#171b26;--bg3:#1e2333;--bg4:#252a3a;
   --border:#2e3450;--border2:#3d4566;
@@ -22,171 +24,164 @@
   --red:#f87171;--red-dim:rgba(248,113,113,0.12);
   --yellow:#fbbf24;--yellow-dim:rgba(251,191,36,0.12);
   --text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;
-  --r:10px;--rs:6px;
+  --shadow:0 2px 12px rgba(0,0,0,0.3);
+  --r:12px;--rs:8px;
+  --bottom-nav:64px;
 }
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh;}
+[data-theme="light"]{
+  --bg:#f8fafc;--bg2:#ffffff;--bg3:#f1f5f9;--bg4:#e2e8f0;
+  --border:#e2e8f0;--border2:#cbd5e1;
+  --text:#0f172a;--text2:#475569;--text3:#94a3b8;
+  --shadow:0 2px 12px rgba(0,0,0,0.08);
+}
 
-/* SYNC STATUS */
-#sync-bar{position:fixed;top:0;left:0;right:0;height:3px;z-index:9999;background:transparent;transition:background .3s;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.5;}
+
+/* ═══ SYNC BAR ═══ */
+#sync-bar{position:fixed;top:0;left:0;right:0;height:3px;z-index:9999;transition:background .3s;}
 #sync-bar.syncing{background:var(--yellow);}
 #sync-bar.synced{background:var(--green);}
 #sync-bar.error{background:var(--red);}
-#sync-indicator{position:fixed;bottom:60px;right:20px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:6px 12px;font-size:12px;z-index:9998;display:flex;align-items:center;gap:6px;opacity:0;transition:opacity .3s;pointer-events:none;}
-#sync-indicator.show{opacity:1;}
-.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);}
-.sync-dot.online{background:var(--green);}
-.sync-dot.syncing{background:var(--yellow);animation:pulse 1s infinite;}
-.sync-dot.error{background:var(--red);}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
 
-/* HEADER */
-#hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;height:54px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:200;}
-#hdr-logo{font-size:18px;font-weight:700;color:var(--accent2);display:flex;align-items:center;gap:8px;}
-#hdr-logo span{font-size:12px;font-weight:400;color:var(--text3);}
-#hdr-trip{flex:1;display:flex;align-items:center;gap:8px;}
-#hdr-trip-name{font-size:14px;font-weight:600;color:var(--text);}
-#hdr-trip-dates{font-size:12px;color:var(--text3);}
-.spacer{flex:1;}
+/* ═══ SCREENS ═══ */
+.screen{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;overflow:hidden;}
+.screen.on{display:flex;}
 
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--rs);border:1px solid transparent;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}
-.btn-primary{background:var(--accent);color:#fff;}
-.btn-primary:hover{filter:brightness(1.1);}
-.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);}
-.btn-ghost:hover{background:var(--bg4);color:var(--text);}
-.btn-danger{background:var(--red-dim);color:var(--red);}
-.btn-danger:hover{background:var(--red);color:#fff;}
-.btn-success{background:var(--green-dim);color:var(--green);}
-.btn-sm{padding:4px 10px;font-size:12px;}
-.btn-icon{padding:5px 8px;}
+/* ═══ SETUP SCREEN ═══ */
+#screen-setup{align-items:center;justify-content:center;padding:24px;}
+.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:32px;width:100%;max-width:440px;box-shadow:var(--shadow);}
+.setup-logo{font-size:48px;text-align:center;margin-bottom:8px;}
+.setup-card h2{font-size:22px;font-weight:700;margin-bottom:6px;text-align:center;}
+.setup-card p{color:var(--text2);margin-bottom:24px;font-size:14px;text-align:center;}
 
-/* SCREENS */
-.screen{display:none;}.screen.on{display:block;}
+/* ═══ TOP HEADER ═══ */
+.top-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;position:relative;}
+.top-bar-title{font-size:17px;font-weight:700;flex:1;}
+.top-bar-sub{font-size:12px;color:var(--text3);}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:none;background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;transition:background .15s;}
+.icon-btn:hover{background:var(--bg4);}
 
-/* ── TRIPS LIST SCREEN ── */
-#screen-trips{padding:40px 24px;max-width:900px;margin:0 auto;}
-.trips-hero{margin-bottom:32px;}
-.trips-hero h2{font-size:26px;font-weight:700;margin-bottom:6px;}
-.trips-hero p{color:var(--text2);font-size:15px;}
-.trips-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-bottom:24px;}
-.trip-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;cursor:pointer;transition:border-color .2s,transform .15s;position:relative;}
-.trip-card:hover{border-color:var(--accent);transform:translateY(-2px);}
-.trip-card-accent{height:4px;border-radius:4px 4px 0 0;position:absolute;top:0;left:0;right:0;}
-.trip-card h3{font-size:16px;font-weight:700;margin-bottom:6px;margin-top:8px;}
-.trip-card-dates{font-size:12px;color:var(--text3);margin-bottom:10px;}
-.trip-card-dest{font-size:13px;color:var(--text2);margin-bottom:12px;}
+/* ═══ TRIPS LIST ═══ */
+#screen-trips .content{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(var(--bottom-nav) + 16px);}
+.trips-hero{margin-bottom:20px;}
+.trips-hero h2{font-size:24px;font-weight:700;margin-bottom:4px;}
+.trips-hero p{color:var(--text2);font-size:14px;}
+.trips-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+.trip-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;position:relative;overflow:hidden;box-shadow:var(--shadow);transition:transform .15s;}
+.trip-card:active{transform:scale(0.97);}
+.trip-card-accent{height:4px;position:absolute;top:0;left:0;right:0;}
+.trip-card h3{font-size:14px;font-weight:700;margin-bottom:4px;margin-top:6px;line-height:1.3;}
+.trip-card-dates{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.trip-card-dest{font-size:12px;color:var(--text2);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .trip-card-footer{display:flex;align-items:center;justify-content:space-between;}
-.trip-card-cost{font-size:13px;font-weight:600;color:var(--green);}
-.trip-card-persons{font-size:12px;color:var(--text3);}
-.trip-card-actions{display:flex;gap:6px;opacity:0;transition:opacity .15s;}
-.trip-card:hover .trip-card-actions{opacity:1;}
-.new-trip-card{background:transparent;border:2px dashed var(--border);border-radius:var(--r);padding:20px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:140px;color:var(--text3);transition:all .2s;}
-.new-trip-card:hover{border-color:var(--accent);color:var(--accent2);}
+.trip-card-persons{font-size:11px;color:var(--text3);}
+.trip-card-budget{font-size:12px;font-weight:600;color:var(--green);}
+.new-trip-card{background:transparent;border:2px dashed var(--border);border-radius:var(--r);padding:16px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:120px;color:var(--text3);transition:all .2s;}
+.new-trip-card:active{border-color:var(--accent);color:var(--accent2);}
 .new-trip-card .emo{font-size:28px;}
+.new-trip-card span{font-size:13px;font-weight:500;}
 
-/* ── TRIP SCREEN ── */
-#screen-trip{display:none;flex-direction:column;height:calc(100vh - 54px);}
-#screen-trip.on{display:flex;}
+/* ═══ BOTTOM NAV ═══ */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:var(--bottom-nav);background:var(--bg2);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-around;padding:0 4px;z-index:100;padding-bottom:env(safe-area-inset-bottom);}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;cursor:pointer;border:none;background:none;color:var(--text3);font-size:10px;font-weight:500;transition:color .15s;border-radius:var(--rs);}
+.bnav-item:active{background:var(--bg3);}
+.bnav-item.on{color:var(--accent);}
+.bnav-icon{font-size:22px;line-height:1;}
 
-/* TRIP HEADER BAR */
-#trip-hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:12px;height:48px;flex-shrink:0;}
-#trip-back{background:none;border:none;color:var(--text2);cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px;padding:6px 0;}
-#trip-back:hover{color:var(--text);}
-#trip-name-display{font-weight:700;font-size:15px;}
-#trip-summary{font-size:12px;color:var(--text3);}
+/* ═══ TRIP SCREEN ═══ */
+#screen-trip .content{flex:1;overflow-y:auto;padding:16px;padding-bottom:calc(var(--bottom-nav) + 16px);}
 
-/* TRIP TABS */
-#trip-tabs{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;padding:0 24px;overflow-x:auto;flex-shrink:0;}
-.ttab{padding:11px 14px;background:none;border:none;border-bottom:2px solid transparent;color:var(--text2);cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;transition:all .15s;}
-.ttab:hover{color:var(--text);}
-.ttab.on{color:var(--accent2);border-bottom-color:var(--accent);}
+/* ═══ MORE MENU (grid) ═══ */
+#screen-more{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:flex-end;}
+#screen-more.on{display:flex;}
+.more-sheet{background:var(--bg2);border-radius:20px 20px 0 0;padding:16px;width:100%;padding-bottom:calc(16px + env(safe-area-inset-bottom));}
+.more-sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px;}
+.more-sheet h3{font-size:14px;font-weight:600;color:var(--text2);margin-bottom:12px;}
+.more-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.more-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--bg3);border-radius:var(--r);cursor:pointer;border:1px solid var(--border);transition:background .15s;}
+.more-item:active{background:var(--bg4);}
+.more-item.on{background:var(--accent-dim);border-color:var(--accent);}
+.more-icon{font-size:24px;}
+.more-label{font-size:11px;font-weight:500;text-align:center;color:var(--text2);}
+.more-item.on .more-label{color:var(--accent2);}
 
-/* TRIP CONTENT */
-#trip-content{flex:1;overflow-y:auto;padding:24px;max-width:1000px;width:100%;margin:0 auto;}
-.tpane{display:none;}.tpane.on{display:block;}
+/* ═══ MODAL FULLSCREEN ═══ */
+.modal-fs{position:fixed;inset:0;background:var(--bg);z-index:400;display:none;flex-direction:column;}
+.modal-fs.on{display:flex;}
+.modal-fs-bar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 16px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0;}
+.modal-fs-title{flex:1;font-size:16px;font-weight:700;}
+.modal-fs-body{flex:1;overflow-y:auto;padding:16px;padding-bottom:32px;}
+.modal-fs-footer{background:var(--bg2);border-top:1px solid var(--border);padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom));display:flex;gap:8px;}
 
-/* FORMS */
-.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
-.fg label{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.4px;}
-input[type=text],input[type=number],input[type=date],input[type=time],input[type=url],input[type=password],select,textarea{
-  background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);
-  color:var(--text);padding:7px 10px;font-size:13px;width:100%;outline:none;font-family:inherit;}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+/* ═══ FORMS ═══ */
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.fg label{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;}
+input[type=text],input[type=number],input[type=date],input[type=url],input[type=password],select,textarea{
+  background:var(--bg3);border:1.5px solid var(--border);border-radius:var(--rs);
+  color:var(--text);padding:11px 13px;font-size:15px;width:100%;outline:none;font-family:inherit;
+  -webkit-appearance:none;appearance:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);background:var(--bg2);}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px;}
 select option{background:var(--bg2);}
-textarea{resize:vertical;min-height:56px;}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.price-row{display:flex;gap:6px;}
+textarea{resize:vertical;min-height:80px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.price-row{display:flex;gap:8px;}
 .price-row input{flex:1;}
-.price-row select{width:82px;flex-shrink:0;}
+.price-row select{width:90px;flex-shrink:0;}
 
-/* SECTION TITLES */
-.stitle{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
-.badge{font-size:11px;font-weight:500;background:var(--accent-dim);color:var(--accent2);padding:2px 8px;border-radius:20px;}
-.divlabel{display:flex;align-items:center;gap:8px;margin:14px 0 10px;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
+/* ═══ SECTION TITLES ═══ */
+.stitle{font-size:18px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.badge{font-size:11px;font-weight:600;background:var(--accent-dim);color:var(--accent2);padding:3px 10px;border-radius:20px;}
+.divlabel{display:flex;align-items:center;gap:8px;margin:16px 0 10px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;}
 .divlabel::before,.divlabel::after{content:'';flex:1;height:1px;background:var(--border);}
 
-/* BLOCK CARDS */
-.bcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:10px;overflow:hidden;}
-.bcard-hdr{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--bg3);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
-.bcard-hdr:hover{background:var(--bg4);}
-.bcard-icon{font-size:16px;}
-.bcard-title{font-weight:600;font-size:13px;}
-.bcard-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+/* ═══ BLOCK CARDS ═══ */
+.bcard{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow);}
+.bcard-hdr{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--bg3);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;}
+.bcard-icon{font-size:20px;}
+.bcard-title{font-weight:600;font-size:14px;}
+.bcard-sub{font-size:12px;color:var(--text3);margin-top:2px;}
 .bcard-body{padding:16px;}
 .bcard.col .bcard-body{display:none;}
-.bcard-ctrl{display:flex;gap:2px;margin-left:auto;}
-.mbtn{background:none;border:none;color:var(--text3);cursor:pointer;padding:3px 7px;border-radius:4px;font-size:13px;}
-.mbtn:hover{color:var(--text);background:var(--bg4);}
-.chevron{font-size:11px;color:var(--text3);margin-left:4px;}
+.bcard-ctrl{display:flex;gap:4px;margin-left:auto;}
+.mbtn{background:none;border:none;color:var(--text3);cursor:pointer;padding:6px 8px;border-radius:6px;font-size:14px;min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;}
+.mbtn:active{background:var(--bg4);}
+.chevron{font-size:12px;color:var(--text3);margin-left:4px;}
 
-/* INNER CARDS */
-.icard{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-bottom:8px;}
-.icard-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+/* ═══ BUTTONS ═══ */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border-radius:var(--rs);border:1px solid transparent;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap;min-height:44px;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:active{filter:brightness(0.9);}
+.btn-ghost{background:transparent;color:var(--text2);border:1.5px solid var(--border);}
+.btn-ghost:active{background:var(--bg3);}
+.btn-danger{background:var(--red-dim);color:var(--red);border-color:var(--red);}
+.btn-success{background:var(--green-dim);color:var(--green);border-color:var(--green);}
+.btn-sm{padding:7px 12px;font-size:13px;min-height:36px;}
+.btn-full{width:100%;}
 
-/* TYPE BADGES */
-.tbadge{padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
-.tb-avion{background:var(--accent-dim);color:var(--accent2);}
-.tb-tren{background:var(--yellow-dim);color:var(--yellow);}
-.tb-autocar{background:var(--purple-dim);color:var(--purple);}
-.tb-taxi{background:var(--orange-dim);color:var(--orange);}
-.tb-masina_proprie{background:var(--green-dim);color:var(--green);}
-.tb-masina_inchiriata{background:var(--green-dim);color:var(--green);}
-.tb-local{background:var(--red-dim);color:var(--red);}
-.tb-feribot{background:var(--accent-dim);color:var(--accent2);}
-.tb-altul{background:var(--bg4);color:var(--text2);}
+/* ═══ FAB ═══ */
+.fab{position:fixed;bottom:calc(var(--bottom-nav) + 16px);right:16px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 16px rgba(79,142,247,0.4);display:flex;align-items:center;justify-content:center;z-index:99;transition:transform .15s;}
+.fab:active{transform:scale(0.92);}
 
-/* PERSONS */
-.person-grid{display:flex;flex-wrap:wrap;gap:10px;}
-.person-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:12px;min-width:200px;flex:1;}
-.person-name{font-weight:600;font-size:13px;margin-bottom:10px;color:var(--accent2);}
-.lug-row{display:flex;gap:6px;align-items:center;margin-bottom:4px;}
-.lug-row select{flex:1;}
-.lug-row input[type=number]{width:54px;flex-shrink:0;}
-
-/* EMPTY */
+/* ═══ EMPTY ═══ */
 .empty{text-align:center;padding:48px 20px;color:var(--text3);}
-.empty .emo{font-size:36px;margin-bottom:10px;}
-.empty p{font-size:14px;}
+.empty .emo{font-size:48px;margin-bottom:12px;}
+.empty p{font-size:14px;line-height:1.6;}
 
-/* UTILS */
-.flex1{flex:1;}.row{display:flex;align-items:flex-start;gap:8px;}
-.mt4{margin-top:4px;}.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}
-.cb-label{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;}
-.cb-label input{width:auto!important;}
+/* ═══ PERSONS ═══ */
+.person-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--rs);padding:14px;margin-bottom:10px;}
+.person-name{font-weight:700;font-size:14px;margin-bottom:12px;color:var(--accent2);}
+.lug-row{display:flex;gap:8px;align-items:center;margin-bottom:6px;}
+.lug-row select{flex:1;}
+.lug-row input[type=number]{width:60px;flex-shrink:0;}
 
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;display:flex;align-items:center;justify-content:center;}
-.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:24px;width:90%;max-width:480px;max-height:90vh;overflow-y:auto;}
-.modal h3{font-size:16px;font-weight:700;margin-bottom:16px;}
-.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
-
-/* TOAST */
-#toast{position:fixed;bottom:20px;right:20px;background:var(--bg2);border:1px solid var(--green);color:var(--green);padding:8px 16px;border-radius:var(--rs);font-size:13px;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;}
+/* ═══ TOAST ═══ */
+#toast{position:fixed;bottom:calc(var(--bottom-nav) + 80px);left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid var(--green);color:var(--green);padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow);}
 #toast.show{opacity:1;}
 
-/* TRIP COLORS */
+/* ═══ TRIP COLORS ═══ */
 .tc-0{background:var(--accent);}
 .tc-1{background:var(--green);}
 .tc-2{background:var(--orange);}
@@ -194,190 +189,222 @@ textarea{resize:vertical;min-height:56px;}
 .tc-4{background:var(--yellow);}
 .tc-5{background:var(--red);}
 
-/* CALENDAR */
-.cal-day{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:16px;overflow:hidden;}
-.cal-day-hdr{padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;}
-.cal-day-num{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
-.cal-day-label{font-weight:600;font-size:14px;}
+/* ═══ CALENDAR ═══ */
+.cal-day{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow);}
+.cal-day-hdr{padding:12px 14px;background:var(--bg3);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.cal-day-num{width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;}
+.cal-day-label{font-weight:700;font-size:14px;}
 .cal-day-date{font-size:12px;color:var(--text3);}
 .cal-occupy{height:6px;background:var(--bg4);border-radius:3px;flex:1;overflow:hidden;}
 .cal-occupy-fill{height:100%;border-radius:3px;background:var(--accent);}
-.cal-timeline{padding:8px 16px;}
-.cal-slot{display:flex;align-items:flex-start;gap:8px;border-top:1px solid var(--border);padding:3px 0;}
-.cal-slot-lbl{width:40px;font-size:10px;color:var(--text3);padding-top:3px;text-align:right;flex-shrink:0;}
-.cal-slot-events{flex:1;display:flex;flex-direction:column;gap:2px;padding:2px 0;}
-.cal-ev{border-radius:4px;padding:3px 8px;font-size:12px;display:flex;align-items:center;gap:6px;}
+.cal-timeline{padding:8px 14px;}
+.cal-slot{display:flex;align-items:flex-start;gap:8px;border-top:1px solid var(--border);padding:4px 0;}
+.cal-slot-lbl{width:42px;font-size:11px;color:var(--text3);padding-top:4px;text-align:right;flex-shrink:0;}
+.cal-slot-events{flex:1;display:flex;flex-direction:column;gap:3px;padding:2px 0;}
+.cal-ev{border-radius:6px;padding:5px 10px;font-size:12px;display:flex;align-items:center;gap:6px;line-height:1.4;}
 .cal-ev-transport{background:var(--accent-dim);border-left:3px solid var(--accent);color:var(--accent2);}
 .cal-ev-accom{background:var(--green-dim);border-left:3px solid var(--green);color:var(--green);}
 .cal-ev-obj{background:var(--orange-dim);border-left:3px solid var(--orange);color:var(--orange);}
 .cal-ev-meal{background:var(--red-dim);border-left:3px solid var(--red);color:var(--red);}
 .cal-locked::after{content:'🔒';margin-left:4px;font-size:10px;}
 
-/* ASSISTANT */
-.chat-wrap{display:flex;flex-direction:column;gap:10px;margin-bottom:16px;max-height:400px;overflow-y:auto;}
-.chat-msg{padding:10px 14px;border-radius:var(--r);font-size:13px;line-height:1.6;max-width:85%;}
+/* ═══ CHAT ═══ */
+.chat-wrap{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;max-height:350px;overflow-y:auto;}
+.chat-msg{padding:12px 14px;border-radius:var(--r);font-size:14px;line-height:1.6;max-width:88%;}
 .chat-user{background:var(--accent-dim);border:1px solid var(--accent);align-self:flex-end;}
 .chat-ai{background:var(--bg3);border:1px solid var(--border);align-self:flex-start;}
 .chat-input-row{display:flex;gap:8px;}
-.chat-input-row textarea{flex:1;min-height:60px;resize:none;}
+.chat-input-row textarea{flex:1;min-height:52px;resize:none;}
 
-/* FIREBASE SETUP SCREEN */
-#screen-setup{padding:40px 24px;max-width:600px;margin:0 auto;}
-.setup-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:32px;}
-.setup-card h2{font-size:22px;font-weight:700;margin-bottom:8px;}
-.setup-card p{color:var(--text2);margin-bottom:24px;font-size:14px;}
-.setup-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:24px;}
-.setup-step{display:flex;gap:12px;align-items:flex-start;}
-.setup-step-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px;}
-.setup-step-text{font-size:13px;color:var(--text2);line-height:1.6;}
-
-@media(max-width:600px){.grid2,.grid3{grid-template-columns:1fr;}#screen-trips{padding:20px 12px;}#trip-content{padding:14px;}}
-input[type=time]{-webkit-appearance:none;appearance:none;}
-
-
-/* MAPS */
-.mini-map{height:200px;border-radius:var(--rs);border:1px solid var(--border);margin-top:8px;z-index:1;}
-.map-full{height:calc(100vh - 200px);border-radius:var(--r);border:1px solid var(--border);}
+/* ═══ MAPS ═══ */
+.mini-map{height:200px;border-radius:var(--rs);border:1px solid var(--border);margin-top:10px;}
+.map-full{height:100%;width:100%;}
 .leaflet-popup-content-wrapper{background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:var(--rs);}
 .leaflet-popup-tip{background:var(--bg2);}
 .leaflet-popup-content{color:var(--text);font-size:13px;font-family:system-ui,sans-serif;}
 
-/* DATE WIDGET */
-.date3{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;}
-.date3 input{text-align:center;padding:7px 4px;min-width:0;}
-.date3 input.dd{width:46px;}
-.date3 input.mm{width:46px;}
-.date3 input.yy{width:62px;}
-.date3 span{color:var(--text3);font-size:13px;flex-shrink:0;}
+/* ═══ DATE WIDGET ═══ */
+.date3{display:flex;gap:6px;align-items:center;}
+.date3 input{text-align:center;padding:11px 6px;}
+.date3 input.dd{width:54px;}
+.date3 input.mm{width:54px;}
+.date3 input.yy{width:72px;}
+.date3 span{color:var(--text3);font-size:15px;flex-shrink:0;}
+
+/* ═══ CB LABEL ═══ */
+.cb-label{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;padding:4px 0;}
+.cb-label input{width:auto!important;width:18px;height:18px;}
+
+/* ═══ UTILS ═══ */
+.flex1{flex:1;}.row{display:flex;align-items:flex-start;gap:8px;}
+.mt8{margin-top:8px;}.mt12{margin-top:12px;}.mt16{margin-top:16px;}
+.text-sm{font-size:13px;}.text-xs{font-size:11px;}.text-muted{color:var(--text3);}
+
+/* ═══ SWIPE HINT ═══ */
+@media(max-width:480px){
+  .trips-grid{grid-template-columns:1fr 1fr;}
+  .grid2{grid-template-columns:1fr;}
+}
 </style>
 </head>
 <body>
 
-<!-- SYNC BAR -->
 <div id="sync-bar"></div>
-<div id="sync-indicator">
-  <div class="sync-dot" id="sync-dot"></div>
-  <span id="sync-text">Se conectează...</span>
-</div>
+<div id="toast">✓ Salvat</div>
 
-<!-- GLOBAL HEADER -->
-<div id="hdr">
-  <div id="hdr-logo">✈ TravelPlanner <span>v3.0 ☁</span></div>
-  <div id="hdr-trip" style="display:none">
-    <span style="color:var(--text3)">›</span>
-    <span id="hdr-trip-name"></span>
-    <span id="hdr-trip-dates"></span>
-  </div>
-  <div class="spacer"></div>
-  <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇ JSON</button>
-  <button class="btn btn-ghost btn-sm" onclick="importJSON()">⬆ JSON</button>
-  <button class="btn btn-primary btn-sm" onclick="exportPDF()">📄 PDF</button>
-</div>
-
-<!-- SCREEN: FIREBASE SETUP -->
+<!-- ═══ SETUP SCREEN ═══ -->
 <div class="screen on" id="screen-setup">
   <div class="setup-card">
-    <h2>☁ Configurare sincronizare</h2>
-    <p>Introdu codul familiei pentru a sincroniza excursiile între dispozitive. Toți care folosesc același cod vor vedea aceleași excursii în timp real.</p>
+    <div class="setup-logo">✈️</div>
+    <h2>Travel Planner</h2>
+    <p>Introdu codul familiei pentru a sincroniza excursiile între dispozitive.</p>
     <div class="fg">
-      <label>Cod familie (alege orice cuvânt secret)</label>
-      <input type="text" id="setup-code" placeholder="ex: familia-popescu-2025" 
-        style="font-size:16px;padding:12px 14px"
+      <label>Cod familie</label>
+      <input type="text" id="setup-code" placeholder="ex: familia-mea-2025"
         onkeydown="if(event.key==='Enter') connectFirebase()">
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">
-        Același cod la tine și la soție = aceleași date. Nu uita codul!
-      </div>
+      <span class="text-xs text-muted">Același cod la tine și la soție = aceleași date</span>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px">
-      <button class="btn btn-primary" onclick="connectFirebase()" style="flex:1;padding:12px">
-        ☁ Conectează
-      </button>
-      <button class="btn btn-ghost" onclick="useLocalOnly()" style="padding:12px">
-        Fără sync (local)
-      </button>
-    </div>
+    <button class="btn btn-primary btn-full" onclick="connectFirebase()" style="margin-bottom:10px">☁ Conectează</button>
+    <button class="btn btn-ghost btn-full" onclick="useLocalOnly()">Fără sync (local)</button>
     <div id="setup-error" style="color:var(--red);font-size:13px;margin-top:12px;display:none"></div>
   </div>
 </div>
 
-<!-- SCREEN: TRIPS LIST -->
+<!-- ═══ TRIPS LIST SCREEN ═══ -->
 <div class="screen" id="screen-trips">
-  <div class="trips-hero">
-    <h2>Excursiile tale ✈</h2>
-    <p>Selectează o excursie sau creează una nouă.</p>
-  </div>
-  <div class="trips-grid" id="trips-grid"></div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <button class="btn btn-ghost btn-sm" onclick="exportJSON()">⬇ Export toate (JSON)</button>
-    <button class="btn btn-ghost btn-sm" onclick="importJSON()">⬆ Import JSON</button>
-    <button class="btn btn-ghost btn-sm" onclick="changeFamily()" style="margin-left:auto">🔑 Schimbă cod familie</button>
-  </div>
-</div>
-
-<!-- SCREEN: TRIP DETAIL -->
-<div class="screen" id="screen-trip">
-  <div id="trip-hdr">
-    <button id="trip-back" onclick="goHome()">← Înapoi</button>
-    <div>
-      <div id="trip-name-display"></div>
-      <div id="trip-summary"></div>
+  <div class="top-bar">
+    <div style="flex:1">
+      <div class="top-bar-title">✈ Travel Planner</div>
     </div>
-    <div class="spacer"></div>
-    <button class="btn btn-ghost btn-sm" onclick="editTripMeta()">✏ Editează</button>
+    <button class="icon-btn" onclick="toggleTheme()" title="Schimbă tema">🌙</button>
+    <button class="icon-btn" onclick="showTripOptions()" title="Opțiuni">⋯</button>
   </div>
-  <div id="trip-tabs">
-    <button class="ttab on" id="ttab-persons"   onclick="showTTab('persons')">👥 Persoane</button>
-    <button class="ttab"    id="ttab-transport" onclick="showTTab('transport')">🚌 Transport</button>
-    <button class="ttab"    id="ttab-accom"     onclick="showTTab('accom')">🏨 Cazare</button>
-    <button class="ttab"    id="ttab-obj"       onclick="showTTab('obj')">📍 Obiective</button>
-    <button class="ttab"    id="ttab-calendar"  onclick="showTTab('calendar')">📅 Calendar</button>
-    <button class="ttab"    id="ttab-ideas"     onclick="showTTab('ideas')">💡 Propuneri</button>
-    <button class="ttab"    id="ttab-todo"      onclick="showTTab('todo')">✅ To-Do</button>
-    <button class="ttab"    id="ttab-budget"    onclick="showTTab('budget')">💰 Buget</button>
-    <button class="ttab"    id="ttab-assistant" onclick="showTTab('assistant')">🤖 Asistent</button>
-    <button class="ttab"    id="ttab-map"       onclick="showTTab('map')">🗺 Hartă</button>
+  <div class="content">
+    <div class="trips-hero">
+      <h2>Excursiile tale</h2>
+      <p>Selectează sau creează o excursie nouă.</p>
+    </div>
+    <div class="trips-grid" id="trips-grid"></div>
   </div>
-  <div id="trip-content">
+  <div class="bottom-nav">
+    <button class="bnav-item" onclick="exportJSON()"><span class="bnav-icon">⬇</span>Export</button>
+    <button class="bnav-item" onclick="importJSON()"><span class="bnav-icon">⬆</span>Import</button>
+    <button class="bnav-item" onclick="changeFamily()"><span class="bnav-icon">🔑</span>Cod</button>
+    <button class="bnav-item" onclick="exportPDF()"><span class="bnav-icon">📄</span>PDF</button>
+  </div>
+  <button class="fab" onclick="newTrip()">＋</button>
+</div>
+
+<!-- ═══ TRIP SCREEN ═══ -->
+<div class="screen" id="screen-trip">
+  <div class="top-bar">
+    <button class="icon-btn" onclick="goHome()">←</button>
+    <div style="flex:1;min-width:0">
+      <div class="top-bar-title" id="trip-name-display" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+      <div class="top-bar-sub" id="trip-summary"></div>
+    </div>
+    <button class="icon-btn" onclick="editTripMeta()">✏</button>
+  </div>
+  <div class="content" id="trip-content">
     <div class="tpane on" id="tpane-persons"></div>
-    <div class="tpane"    id="tpane-transport"></div>
-    <div class="tpane"    id="tpane-accom"></div>
-    <div class="tpane"    id="tpane-obj"></div>
-    <div class="tpane"    id="tpane-calendar"></div>
-    <div class="tpane"    id="tpane-ideas"></div>
-    <div class="tpane"    id="tpane-todo"></div>
-    <div class="tpane"    id="tpane-budget"></div>
-    <div class="tpane"    id="tpane-assistant"></div>
-    <div class="tpane"    id="tpane-map"></div>
+    <div class="tpane" id="tpane-transport"></div>
+    <div class="tpane" id="tpane-accom"></div>
+    <div class="tpane" id="tpane-obj"></div>
+    <div class="tpane" id="tpane-calendar"></div>
+    <div class="tpane" id="tpane-map" style="padding:0;height:100%;"></div>
+    <div class="tpane" id="tpane-ideas"></div>
+    <div class="tpane" id="tpane-todo"></div>
+    <div class="tpane" id="tpane-budget"></div>
+    <div class="tpane" id="tpane-assistant"></div>
+  </div>
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav" id="trip-bnav">
+    <button class="bnav-item on" id="bnav-persons" onclick="showTTab('persons')"><span class="bnav-icon">👥</span>Persoane</button>
+    <button class="bnav-item" id="bnav-transport" onclick="showTTab('transport')"><span class="bnav-icon">🚌</span>Transport</button>
+    <button class="bnav-item" id="bnav-accom" onclick="showTTab('accom')"><span class="bnav-icon">🏨</span>Cazare</button>
+    <button class="bnav-item" id="bnav-calendar" onclick="showTTab('calendar')"><span class="bnav-icon">📅</span>Calendar</button>
+    <button class="bnav-item" id="bnav-more" onclick="showMoreMenu()"><span class="bnav-icon">⋯</span>Mai mult</button>
+  </div>
+  <button class="fab" id="trip-fab" onclick="tripFabAction()">＋</button>
+</div>
+
+<!-- ═══ MORE MENU ═══ -->
+<div id="screen-more" onclick="hideMoreMenu()">
+  <div class="more-sheet" onclick="event.stopPropagation()">
+    <div class="more-sheet-handle"></div>
+    <h3>Toate secțiunile</h3>
+    <div class="more-grid">
+      <div class="more-item" id="more-persons" onclick="showTTabFromMore('persons')">
+        <span class="more-icon">👥</span><span class="more-label">Persoane</span>
+      </div>
+      <div class="more-item" id="more-transport" onclick="showTTabFromMore('transport')">
+        <span class="more-icon">🚌</span><span class="more-label">Transport</span>
+      </div>
+      <div class="more-item" id="more-accom" onclick="showTTabFromMore('accom')">
+        <span class="more-icon">🏨</span><span class="more-label">Cazare</span>
+      </div>
+      <div class="more-item" id="more-obj" onclick="showTTabFromMore('obj')">
+        <span class="more-icon">📍</span><span class="more-label">Obiective</span>
+      </div>
+      <div class="more-item" id="more-calendar" onclick="showTTabFromMore('calendar')">
+        <span class="more-icon">📅</span><span class="more-label">Calendar</span>
+      </div>
+      <div class="more-item" id="more-map" onclick="showTTabFromMore('map')">
+        <span class="more-icon">🗺</span><span class="more-label">Hartă</span>
+      </div>
+      <div class="more-item" id="more-ideas" onclick="showTTabFromMore('ideas')">
+        <span class="more-icon">💡</span><span class="more-label">Propuneri</span>
+      </div>
+      <div class="more-item" id="more-todo" onclick="showTTabFromMore('todo')">
+        <span class="more-icon">✅</span><span class="more-label">To-Do</span>
+      </div>
+      <div class="more-item" id="more-budget" onclick="showTTabFromMore('budget')">
+        <span class="more-icon">💰</span><span class="more-label">Buget</span>
+      </div>
+      <div class="more-item" id="more-assistant" onclick="showTTabFromMore('assistant')">
+        <span class="more-icon">🤖</span><span class="more-label">Asistent</span>
+      </div>
+    </div>
   </div>
 </div>
 
-<!-- MODAL NEW/EDIT TRIP -->
-<div class="modal-overlay" id="modal-trip" style="display:none">
-  <div class="modal">
-    <h3 id="modal-trip-title">Excursie nouă</h3>
+<!-- ═══ MODAL: NEW/EDIT TRIP ═══ -->
+<div class="modal-fs" id="modal-trip">
+  <div class="modal-fs-bar">
+    <button class="icon-btn" onclick="closeModal()">←</button>
+    <div class="modal-fs-title" id="modal-trip-title">Excursie nouă</div>
+  </div>
+  <div class="modal-fs-body">
     <div class="fg"><label>Nume excursie</label><input type="text" id="mt-name" placeholder="ex: Paris 2025"></div>
     <div class="grid2">
       <div class="fg"><label>Data start</label><div class="date3" id="dt-start"></div></div>
       <div class="fg"><label>Data end</label><div class="date3" id="dt-end"></div></div>
     </div>
-    <div class="fg"><label>Destinații (separate prin virgulă)</label><input type="text" id="mt-dest" placeholder="Paris, Lyon, Bordeaux"></div>
-    <div class="fg"><label>Note</label><textarea id="mt-notes" style="min-height:60px"></textarea></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Anulează</button>
-      <button class="btn btn-primary" onclick="saveTrip()">Salvează</button>
-    </div>
+    <div class="fg"><label>Destinații</label><input type="text" id="mt-dest" placeholder="Paris, Lyon..."></div>
+    <div class="fg"><label>Note</label><textarea id="mt-notes"></textarea></div>
+  </div>
+  <div class="modal-fs-footer">
+    <button class="btn btn-ghost" onclick="closeModal()" style="flex:1">Anulează</button>
+    <button class="btn btn-primary" onclick="saveTrip()" style="flex:2">Salvează</button>
   </div>
 </div>
 
-<div id="toast">✓ Salvat</div>
+<!-- ═══ TRIP OPTIONS MODAL ═══ -->
+<div id="trip-options-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:350;" onclick="document.getElementById('trip-options-overlay').style.display='none'">
+  <div style="position:absolute;bottom:0;left:0;right:0;background:var(--bg2);border-radius:20px 20px 0 0;padding:16px;padding-bottom:calc(16px + env(safe-area-inset-bottom));" onclick="event.stopPropagation()">
+    <div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 16px;"></div>
+    <div id="trip-options-content"></div>
+  </div>
+</div>
+
 <input type="file" id="imp" accept=".json" style="display:none" onchange="handleImport(event)">
 
 <script type="module">
-// ═══════════════════════════
-// FIREBASE SETUP
-// ═══════════════════════════
+// ═══════════════════════════════════════
+// FIREBASE
+// ═══════════════════════════════════════
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, doc, onSnapshot, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, onSnapshot, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyDEjyYlC6b5-ONkby_5Qoby8oy_WnQseCo",
@@ -391,57 +418,62 @@ const firebaseConfig = {
 const fbApp = initializeApp(firebaseConfig);
 const db = getFirestore(fbApp);
 
-// ═══════════════════════════
-// DATA & STATE
-// ═══════════════════════════
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
 let D = { trips: [] };
 let currentTripId = null;
+let currentTab = 'persons';
 let familyCode = null;
 let unsubscribe = null;
-let isSyncing = false;
 let saveTimeout = null;
 let localOnly = false;
-let isRemoteUpdate = false;
 
 function trip(){ return D.trips.find(t=>t.id===currentTripId); }
 
-// ═══════════════════════════
-// SYNC STATUS UI
-// ═══════════════════════════
-function setSyncStatus(status, text){
+// ═══════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════
+let darkMode = localStorage.getItem('tp_theme') !== 'light';
+
+function applyTheme(){
+  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+  document.getElementById('theme-color-meta').content = darkMode ? '#171b26' : '#ffffff';
+  document.querySelector('.icon-btn[onclick="toggleTheme()"]').textContent = darkMode ? '🌙' : '☀️';
+}
+
+window.toggleTheme = function(){
+  darkMode = !darkMode;
+  localStorage.setItem('tp_theme', darkMode ? 'dark' : 'light');
+  applyTheme();
+}
+
+// ═══════════════════════════════════════
+// SYNC
+// ═══════════════════════════════════════
+function setSyncStatus(status){
   const bar = document.getElementById('sync-bar');
-  const dot = document.getElementById('sync-dot');
-  const txt = document.getElementById('sync-text');
-  const ind = document.getElementById('sync-indicator');
   bar.className = status;
-  dot.className = 'sync-dot ' + status;
-  txt.textContent = text;
-  ind.classList.add('show');
-  clearTimeout(ind._t);
   if(status === 'synced'){
-    ind._t = setTimeout(()=>ind.classList.remove('show'), 2000);
+    clearTimeout(bar._t);
+    bar._t = setTimeout(()=>bar.className='', 2000);
   }
 }
 
-// ═══════════════════════════
-// FIREBASE CONNECT
-// ═══════════════════════════
 window.connectFirebase = async function(){
   const code = document.getElementById('setup-code').value.trim().toLowerCase().replace(/\s+/g,'-');
   if(!code){ showSetupError('Introdu un cod familie!'); return; }
-  
-  setSyncStatus('syncing', 'Se conectează...');
   familyCode = code;
   localStorage.setItem('tp_family_code', code);
   localOnly = false;
-  
+  setSyncStatus('syncing');
   try {
     await startFirebaseSync();
     showScreen('trips');
     renderHome();
   } catch(e) {
-    showSetupError('Eroare conectare: ' + e.message);
-    setSyncStatus('error', 'Eroare conectare');
+    showSetupError('Eroare: ' + e.message);
+    setSyncStatus('error');
   }
 }
 
@@ -451,8 +483,6 @@ window.useLocalOnly = function(){
   loadLocal();
   showScreen('trips');
   renderHome();
-  setSyncStatus('', '');
-  document.getElementById('sync-indicator').classList.remove('show');
 }
 
 window.changeFamily = function(){
@@ -465,77 +495,60 @@ window.changeFamily = function(){
 
 function showSetupError(msg){
   const el = document.getElementById('setup-error');
-  el.textContent = msg;
-  el.style.display = 'block';
+  el.textContent = msg; el.style.display = 'block';
 }
 
 async function startFirebaseSync(){
   if(unsubscribe) unsubscribe();
   const docRef = doc(db, 'families', familyCode);
-  
   return new Promise((resolve, reject) => {
     let resolved = false;
-    const timeout = setTimeout(()=>{
-      if(!resolved){ reject(new Error('Timeout conectare')); }
-    }, 10000);
-    
+    const timeout = setTimeout(()=>{ if(!resolved) reject(new Error('Timeout')); }, 10000);
     unsubscribe = onSnapshot(docRef, (snap) => {
-      if(!resolved){
-        resolved = true;
-        clearTimeout(timeout);
-        resolve();
-      }
+      if(!resolved){ resolved = true; clearTimeout(timeout); resolve(); }
       if(snap.exists()){
         const remote = snap.data();
         if(remote && remote.trips){
-          isRemoteUpdate = true;
           D = remote;
           if(!D.trips) D.trips = [];
-          isRemoteUpdate = false;
-          // refresh current view
-          if(currentTripId) updateTripHeader();
-          const activeTab = document.querySelector('.ttab.on');
-          if(activeTab) {
-            const tabName = activeTab.id.replace('ttab-','');
-            renderTab(tabName);
-          }
-          renderHome();
+          refreshCurrentView();
         }
       } else {
-        // New family — push empty data
         setDoc(docRef, { trips: [] });
       }
-      setSyncStatus('synced', '☁ Sincronizat');
+      setSyncStatus('synced');
     }, (err) => {
-      setSyncStatus('error', '⚠ Eroare sync');
+      setSyncStatus('error');
       if(!resolved){ resolved = true; clearTimeout(timeout); reject(err); }
     });
   });
 }
 
-// ═══════════════════════════
-// PERSIST
-// ═══════════════════════════
+function refreshCurrentView(){
+  const screen = document.querySelector('.screen.on');
+  if(!screen) return;
+  if(screen.id === 'screen-trips') renderHome();
+  else if(screen.id === 'screen-trip'){
+    updateTripHeader();
+    renderTab(currentTab);
+  }
+}
+
 function save(){
   if(localOnly){
     localStorage.setItem('tp2', JSON.stringify(D));
-    showToast();
-    return;
+    showToast(); return;
   }
   if(!familyCode) return;
-  
-  // Debounce — nu trimitem la fiecare keystroke
   clearTimeout(saveTimeout);
-  setSyncStatus('syncing', 'Se salvează...');
+  setSyncStatus('syncing');
   saveTimeout = setTimeout(async ()=>{
     try {
-      const docRef = doc(db, 'families', familyCode);
-      await setDoc(docRef, JSON.parse(JSON.stringify(D)));
-      setSyncStatus('synced', '☁ Sincronizat');
+      await setDoc(doc(db, 'families', familyCode), JSON.parse(JSON.stringify(D)));
+      setSyncStatus('synced');
       showToast();
     } catch(e) {
-      setSyncStatus('error', '⚠ Eroare salvare');
-      // Fallback to local
+      setSyncStatus('error');
       localStorage.setItem('tp2', JSON.stringify(D));
     }
   }, 800);
@@ -552,16 +565,16 @@ function showToast(){
   t._t=setTimeout(()=>t.classList.remove('show'),1600);
 }
 
-function exportJSON(){
+// ═══════════════════════════════════════
+// IMPORT/EXPORT
+// ═══════════════════════════════════════
+window.exportJSON = function(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(D,null,2)],{type:'application/json'}));
   a.download='travel-'+new Date().toISOString().slice(0,10)+'.json';
   a.click();
 }
-
 window.importJSON = function(){ document.getElementById('imp').click(); }
-window.exportJSON = exportJSON;
-
 window.handleImport = function(e){
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader();
@@ -569,466 +582,26 @@ window.handleImport = function(e){
   r.readAsText(f); e.target.value='';
 }
 
-// ═══════════════════════════
+// ═══════════════════════════════════════
 // UTILS
-// ═══════════════════════════
+// ═══════════════════════════════════════
 function uid(){ return '_'+Math.random().toString(36).substr(2,9); }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
-function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('ro-RO',{day:'numeric',month:'short',year:'numeric'}); }
-function tripDuration(t){ if(!t.start||!t.end) return ''; const d=Math.round((new Date(t.end)-new Date(t.start))/(1000*60*60*24)); return d+' zile'; }
+function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso+'T12:00:00'); return d.toLocaleDateString('ro-RO',{day:'numeric',month:'short'}); }
+function fmtDateRo(iso){ if(!iso) return ''; const {d,m,y}=isoToD(iso); return `${d}/${m}/${y}`; }
+function tripDuration(t){ if(!t.start||!t.end) return ''; const d=Math.round((new Date(t.end+'T12:00:00')-new Date(t.start+'T12:00:00'))/(864e5)); return d+' zile'; }
+function calcNights(ci,co){ if(!ci||!co) return 0; const d=Math.round((new Date(co+'T12:00:00')-new Date(ci+'T12:00:00'))/(864e5)); return d>0?d:0; }
+function isoToD(iso){ if(!iso) return {d:'',m:'',y:''}; const [y,mo,d]=iso.split('-'); return {d:d||'',m:mo||'',y:y||''}; }
+function dToIso(d,m,y){ if(!d||!m||!y) return ''; const ys=String(y); if(ys.length<4) return ''; return `${ys}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+function subtractMinutes(ts,mins){ if(!ts||!mins) return ''; const [h,m]=ts.split(':').map(Number); const total=h*60+m-parseInt(mins); const rh=Math.floor(((total%1440)+1440)%1440/60); const rm=((total%1440)+1440)%60; return `${String(rh).padStart(2,'0')}:${String(rm).padStart(2,'0')}`; }
 const COLORS=['tc-0','tc-1','tc-2','tc-3','tc-4','tc-5'];
+const CURR=['EUR','RON','USD','GBP','CHF','CZK','HUF','PLN','SEK','NOK','DKK','TRY','BGN','JPY','AUD','CAD'];
 
-// ═══════════════════════════
-// SCREENS
-// ═══════════════════════════
-window.showScreen = function(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
-  document.getElementById('screen-'+id).classList.add('on');
-}
-
-// ═══════════════════════════
-// HOME — TRIPS LIST
-// ═══════════════════════════
-function renderHome(){
-  if(!document.getElementById('screen-trips').classList.contains('on')) return;
-  document.getElementById('hdr-trip').style.display='none';
-  const g=document.getElementById('trips-grid');
-  let h='';
-  D.trips.forEach((t,i)=>{
-    const col=COLORS[i%COLORS.length];
-    const dur=tripDuration(t);
-    const persons=(t.persons||[]).length;
-    h+=`<div class="trip-card" onclick="openTrip('${t.id}')">
-      <div class="trip-card-accent ${col}"></div>
-      <h3>${esc(t.name||'Excursie fără nume')}</h3>
-      <div class="trip-card-dates">${fmtDate(t.start)} → ${fmtDate(t.end)} ${dur?'('+dur+')':''}</div>
-      <div class="trip-card-dest">${esc(t.destinations||'—')}</div>
-      <div class="trip-card-footer">
-        <span class="trip-card-persons">👥 ${persons} persoane</span>
-        <div class="trip-card-actions" onclick="event.stopPropagation()">
-          <button class="btn btn-ghost btn-sm" onclick="editTrip('${t.id}')">✏</button>
-          <button class="btn btn-danger btn-sm" onclick="deleteTrip('${t.id}')">✕</button>
-        </div>
-      </div>
-    </div>`;
-  });
-  h+=`<div class="new-trip-card" onclick="newTrip()">
-    <div class="emo">＋</div>
-    <div>Excursie nouă</div>
-  </div>`;
-  g.innerHTML=h;
-}
-
-// ═══════════════════════════
-// TRIP CRUD
-// ═══════════════════════════
-let editingTripId=null;
-
-window.newTrip = function(){
-  editingTripId=null;
-  document.getElementById('modal-trip-title').textContent='Excursie nouă';
-  document.getElementById('mt-name').value='';
-  document.getElementById('mt-dest').value='';
-  document.getElementById('mt-notes').value='';
-  document.getElementById('modal-trip').style.display='flex';
-  setTimeout(()=>{ renderDate3('dt-start',''); renderDate3('dt-end',''); },0);
-}
-
-window.editTrip = function(id){
-  const t=D.trips.find(x=>x.id===id);
-  editingTripId=id;
-  document.getElementById('modal-trip-title').textContent='Editează excursia';
-  document.getElementById('mt-name').value=t.name||'';
-  document.getElementById('mt-dest').value=t.destinations||'';
-  document.getElementById('mt-notes').value=t.notes||'';
-  document.getElementById('modal-trip').style.display='flex';
-  setTimeout(()=>{ renderDate3('dt-start',t.start||''); renderDate3('dt-end',t.end||''); },0);
-}
-
-window.editTripMeta = function(){ editTrip(currentTripId); }
-
-window.saveTrip = function(){
-  const name=document.getElementById('mt-name').value.trim();
-  if(!name){ alert('Introdu un nume pentru excursie.'); return; }
-  const start=getDate3('dt-start');
-  const end=getDate3('dt-end');
-  if(editingTripId){
-    const t=D.trips.find(x=>x.id===editingTripId);
-    t.name=name; t.start=start; t.end=end;
-    t.destinations=document.getElementById('mt-dest').value;
-    t.notes=document.getElementById('mt-notes').value;
-  } else {
-    D.trips.push({
-      id:uid(), name, start, end,
-      destinations:document.getElementById('mt-dest').value,
-      notes:document.getElementById('mt-notes').value,
-      persons:[], transport:[], accom:[], objectives:[], ideas:[],
-      todo:{Documente:[],Transport:[],Cazare:[],Activități:[],Cumpărături:[],Altele:[]},
-      budgetExtras:[],
-    });
-  }
-  save(); closeModal();
-  if(editingTripId && currentTripId===editingTripId) updateTripHeader();
-  else renderHome();
-}
-
-window.deleteTrip = function(id){
-  if(!confirm('Șterge excursia și toate datele ei?')) return;
-  D.trips=D.trips.filter(t=>t.id!==id);
-  save(); renderHome();
-}
-
-window.closeModal = function(){ document.getElementById('modal-trip').style.display='none'; }
-
-// ═══════════════════════════
-// OPEN TRIP
-// ═══════════════════════════
-window.openTrip = function(id){
-  currentTripId=id;
-  updateTripHeader();
-  showScreen('trip');
-  showTTab('persons');
-}
-
-window.goHome = function(){
-  currentTripId=null;
-  showScreen('trips');
-  renderHome();
-}
-
-function updateTripHeader(){
-  const t=trip(); if(!t) return;
-  document.getElementById('hdr-trip').style.display='flex';
-  document.getElementById('hdr-trip-name').textContent=t.name||'';
-  document.getElementById('hdr-trip-dates').textContent=t.start&&t.end?fmtDate(t.start)+' → '+fmtDate(t.end):'';
-  document.getElementById('trip-name-display').textContent=t.name||'';
-  const dur=tripDuration(t);
-  document.getElementById('trip-summary').textContent=[t.destinations,dur].filter(Boolean).join(' · ');
-}
-
-// ═══════════════════════════
-// TRIP TABS
-// ═══════════════════════════
-window.showTTab = function(name){
-  document.querySelectorAll('.ttab').forEach(t=>t.classList.remove('on'));
-  document.querySelectorAll('.tpane').forEach(p=>p.classList.remove('on'));
-  document.getElementById('ttab-'+name).classList.add('on');
-  document.getElementById('tpane-'+name).classList.add('on');
-  renderTab(name);
-}
-
-function renderTab(name){
-  if(name==='persons')   renderPersons();
-  if(name==='transport') renderTransport();
-  if(name==='accom')     renderAccom();
-  if(name==='obj')       renderObj();
-  if(name==='ideas')     renderIdeas();
-  if(name==='todo')      renderTodo();
-  if(name==='budget')    renderBudget();
-  if(name==='calendar')  renderCalendar();
-  if(name==='assistant') renderAssistant();
-  if(name==='map') renderMapTab();
-}
-
-// ═══════════════════════════
-// CURRENCIES & HELPERS
-// ═══════════════════════════
-const CURR=['EUR','RON','USD','GBP','CHF','CZK','HUF','PLN','SEK','NOK','DKK','TRY','BGN','HRK','JPY','AUD','CAD','NZD','SGD','AED','MXN','BRL','ZAR','KRW','THB','IDR','INR','MYR'];
 function priceRow(val,cur,onV,onC){
   return `<div class="price-row">
     <input type="number" value="${val||''}" placeholder="0.00" step="0.01" oninput="${onV}">
     <select onchange="${onC}">${CURR.map(c=>`<option value="${c}"${c===cur?' selected':''}>${c}</option>`).join('')}</select>
   </div>`;
-}
-
-// ═══════════════════════════
-// PERSONS
-// ═══════════════════════════
-function renderPersons(){
-  const t=trip(); if(!t) return;
-  const el=document.getElementById('tpane-persons');
-  let h=`<div class="stitle">👥 Persoane <span class="badge">${(t.persons||[]).length}</span></div>`;
-  if(!(t.persons||[]).length){
-    h+=`<div class="empty"><div class="emo">👤</div><p>Nicio persoană adăugată.</p></div>`;
-  } else {
-    t.persons.forEach((p,i)=>{
-      h+=`<div class="bcard"><div class="bcard-body">
-        <div class="row">
-          <div class="flex1 grid2">
-            <div class="fg"><label>Nume complet</label>
-              <input type="text" value="${esc(p.name)}" placeholder="Ion Popescu"
-                oninput="trip().persons[${i}].name=this.value;save()">
-            </div>
-            <div class="fg"><label>Note (pașaport, alergii...)</label>
-              <input type="text" value="${esc(p.notes||'')}"
-                oninput="trip().persons[${i}].notes=this.value;save()">
-            </div>
-          </div>
-          <button class="btn btn-danger btn-sm" style="margin-top:18px;flex-shrink:0"
-            onclick="removePerson(${i})">✕</button>
-        </div>
-      </div></div>`;
-    });
-  }
-  h+=`<div class="mt4"><button class="btn btn-primary" onclick="addPerson()">+ Adaugă persoană</button></div>`;
-  el.innerHTML=h;
-}
-
-window.addPerson = function(){
-  const t=trip(); if(!t) return;
-  if(!t.persons) t.persons=[];
-  t.persons.push({id:uid(),name:'',notes:''});
-  save(); renderPersons();
-}
-
-window.removePerson = function(i){
-  if(!confirm('Șterge persoana?')) return;
-  trip().persons.splice(i,1); save(); renderPersons();
-}
-
-// ═══════════════════════════
-// TRANSPORT
-// ═══════════════════════════
-const TTYPES=[
-  {id:'avion',label:'✈️ Avion'},{id:'tren',label:'🚂 Tren'},
-  {id:'autocar',label:'🚌 Autocar'},{id:'taxi',label:'🚕 Taxi / Uber'},
-  {id:'masina_proprie',label:'🚗 Mașină proprie'},
-  {id:'masina_inchiriata',label:'🚗 Mașină închiriată'},
-  {id:'local',label:'🚇 Transport local'},
-  {id:'local_tickets',label:'🎫 Bilete / Card local'},
-  {id:'feribot',label:'⛴ Feribot / Barcă'},
-  {id:'altul',label:'🚶 Altul'},
-];
-const LUGGAGE_TYPES=['🎒 Bagaj mic sub scaun','🧳 Bagaj cabină overhead','📦 Cală 20kg','📦 Cală 23kg','📦 Cală 25kg','📦 Cală 30kg'];
-const TICKET_PERIODS=['Bilet individual','Zilnic','2 zile','3 zile','Săptămânal (7 zile)','Lunar','Altul'];
-
-function ttLabel(id){ return (TTYPES.find(t=>t.id===id)||{label:id}).label; }
-function mkBP(t){ return (t.persons||[]).map(p=>({pid:p.id,price:'',cur:'EUR',luggage:[],notes:''})); }
-function syncBP(blk){
-  const t=trip(); if(!t) return;
-  if(!blk.persons) blk.persons=[];
-  (t.persons||[]).forEach(p=>{
-    if(!blk.persons.find(x=>x.pid===p.id))
-      blk.persons.push({pid:p.id,price:'',cur:'EUR',luggage:[],notes:''});
-  });
-  blk.persons=blk.persons.filter(x=>(t.persons||[]).find(p=>p.id===x.pid));
-}
-
-function renderTransport(){
-  const t=trip(); if(!t) return;
-  if(!t.transport) t.transport=[];
-  const el=document.getElementById('tpane-transport');
-  let h=`<div class="stitle">🚌 Transport <span class="badge">${t.transport.length}</span></div>`;
-  h+=`<div style="margin-bottom:16px"><button class="btn btn-primary" onclick="addTransport()">+ Adaugă deplasare</button></div>`;
-  if(!t.transport.length){
-    h+=`<div class="empty"><div class="emo">🚌</div><p>Nicio deplasare adăugată încă.</p></div>`;
-  } else {
-    t.transport.forEach((b,i)=>{ h+=renderTransportBlock(b,i); });
-  }
-  el.innerHTML=h;
-}
-
-function renderTransportBlock(b,i){
-  const t=trip();
-  const label=ttLabel(b.ttype||'avion');
-  let sub=[b.from,b.to].filter(Boolean).join(' → ');
-  if(b.depDate) sub+=(sub?' · ':'')+b.depDate+(b.depTime?' '+b.depTime:'');
-  if(b.locked) sub+=' 🔒';
-  return `<div class="bcard ${b._col?'col':''}" id="tr-${b.id}">
-    <div class="bcard-hdr" onclick="toggleTr(${i})">
-      <span class="bcard-icon">${label.split(' ')[0]}</span>
-      <div class="flex1">
-        <div class="bcard-title">${label}</div>
-        ${sub?`<div class="bcard-sub">${esc(sub)}</div>`:''}
-      </div>
-      <div class="bcard-ctrl" onclick="event.stopPropagation()">
-        ${i>0?`<button class="mbtn" onclick="moveTr(${i},-1)">▲</button>`:''}
-        ${i<t.transport.length-1?`<button class="mbtn" onclick="moveTr(${i},1)">▼</button>`:''}
-        <button class="mbtn" style="color:var(--red)" onclick="removeTr(${i})">✕</button>
-      </div>
-      <span class="chevron">${b._col?'▶':'▼'}</span>
-    </div>
-    <div class="bcard-body">${bodyTransport(b,i)}</div>
-  </div>`;
-}
-
-function bodyTransport(b,i){
-  const ttype=b.ttype||'avion';
-  const sp=b.specific||{};
-  const withLuggage=(ttype==='avion'||ttype==='tren');
-  const withParking=(ttype==='masina_proprie');
-  let sf='';
-  if(ttype==='avion') sf=`
-    <div class="fg"><label>Companie</label><input type="text" value="${esc(sp.airline||'')}" oninput="trip().transport[${i}].specific.airline=this.value;save()"></div>
-    <div class="fg"><label>Nr. zbor</label><input type="text" value="${esc(sp.flightNum||'')}" placeholder="RO1234" oninput="trip().transport[${i}].specific.flightNum=this.value;save()"></div>
-    <div class="fg"><label>Terminal</label><input type="text" value="${esc(sp.terminal||'')}" oninput="trip().transport[${i}].specific.terminal=this.value;save()"></div>`;
-  else if(ttype==='tren') sf=`
-    <div class="fg"><label>Operator</label><input type="text" value="${esc(sp.operator||'')}" oninput="trip().transport[${i}].specific.operator=this.value;save()"></div>
-    <div class="fg"><label>Nr. tren</label><input type="text" value="${esc(sp.trainNum||'')}" oninput="trip().transport[${i}].specific.trainNum=this.value;save()"></div>
-    <div class="fg"><label>Clasă</label><input type="text" value="${esc(sp.class||'')}" placeholder="Cl. 1" oninput="trip().transport[${i}].specific.class=this.value;save()"></div>
-    <div class="fg"><label>Vagon / Loc</label><input type="text" value="${esc(sp.wagon||'')}" oninput="trip().transport[${i}].specific.wagon=this.value;save()"></div>`;
-  else if(ttype==='autocar') sf=`
-    <div class="fg"><label>Operator</label><input type="text" value="${esc(sp.operator||'')}" oninput="trip().transport[${i}].specific.operator=this.value;save()"></div>
-    <div class="fg"><label>Nr. cursă</label><input type="text" value="${esc(sp.routeNum||'')}" oninput="trip().transport[${i}].specific.routeNum=this.value;save()"></div>`;
-  else if(ttype==='taxi') sf=`
-    <div class="fg"><label>Instrucțiuni</label><input type="text" value="${esc(sp.instructions||'')}" oninput="trip().transport[${i}].specific.instructions=this.value;save()"></div>`;
-  else if(ttype==='masina_inchiriata') sf=`
-    <div class="fg"><label>Firmă</label><input type="text" value="${esc(sp.company||'')}" oninput="trip().transport[${i}].specific.company=this.value;save()"></div>
-    <div class="fg"><label>Model</label><input type="text" value="${esc(sp.model||'')}" oninput="trip().transport[${i}].specific.model=this.value;save()"></div>
-    <div class="fg"><label>Preț / zi</label>${priceRow(sp.priceDay,sp.priceDayCur||'EUR',`trip().transport[${i}].specific.priceDay=this.value;save()`,`trip().transport[${i}].specific.priceDayCur=this.value;save()`)}</div>`;
-  else if(ttype==='local_tickets'){
-    if(!b.tickets) b.tickets=[];
-    const tksHtml=b.tickets.map((tk,ti)=>`
-      <div class="icard">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-          <span style="font-size:12px;font-weight:600;color:var(--purple)">🎫 Bilet ${ti+1}</span>
-          <div class="flex1"></div>
-          <button class="mbtn" style="color:var(--red)" onclick="trip().transport[${i}].tickets.splice(${ti},1);save();renderTransport()">✕</button>
-        </div>
-        <div class="grid3">
-          <div class="fg"><label>Tip perioadă</label>
-            <select onchange="trip().transport[${i}].tickets[${ti}].period=this.value;save()">
-              ${TICKET_PERIODS.map(p=>`<option value="${p}"${p===tk.period?' selected':''}>${p}</option>`).join('')}
-            </select>
-          </div>
-          <div class="fg"><label>Nr. bilete</label>
-            <input type="number" value="${tk.count||1}" min="1" oninput="trip().transport[${i}].tickets[${ti}].count=parseInt(this.value)||1;save()">
-          </div>
-          <div class="fg"><label>Preț / bilet</label>
-            ${priceRow(tk.price,tk.cur||'EUR',`trip().transport[${i}].tickets[${ti}].price=this.value;save()`,`trip().transport[${i}].tickets[${ti}].cur=this.value;save()`)}
-          </div>
-        </div>
-        <div class="fg"><label>Note</label>
-          <input type="text" value="${esc(tk.notes||'')}" oninput="trip().transport[${i}].tickets[${ti}].notes=this.value;save()">
-        </div>
-      </div>`).join('');
-    sf=`<div style="grid-column:1/-1">${tksHtml}<button class="btn btn-ghost btn-sm mt8" onclick="addLocalTicket(${i})">+ Adaugă bilet</button></div>`;
-  }
-
-  let parkingHtml='';
-  if(withParking){
-    const pk=b.parking||{};
-    parkingHtml=`<div class="divlabel">🅿 Parcare</div>
-    <div class="grid3">
-      <div class="fg"><label>Tip</label>
-        <select onchange="trip().transport[${i}].parking.type=this.value;save();renderTransport()">
-          <option value="platit" ${(pk.type||'platit')==='platit'?'selected':''}>Cu plată</option>
-          <option value="gratuit" ${pk.type==='gratuit'?'selected':''}>Gratuit</option>
-        </select>
-      </div>
-      ${(pk.type||'platit')==='platit'?`
-      <div class="fg"><label>Firmă parcare</label><input type="text" value="${esc(pk.company||'')}" oninput="trip().transport[${i}].parking.company=this.value;save()"></div>
-      <div class="fg"><label>Preț parcare</label>${priceRow(pk.price,pk.cur||'EUR',`trip().transport[${i}].parking.price=this.value;save()`,`trip().transport[${i}].parking.cur=this.value;save()`)}</div>`:''}
-    </div>`;
-  }
-
-  return `
-  <div class="grid3">
-    <div class="fg"><label>Tip transport</label>
-      <select onchange="trip().transport[${i}].ttype=this.value;trip().transport[${i}].specific={};if(this.value==='masina_proprie')trip().transport[${i}].parking={type:'platit'};save();renderTransport()">
-        ${TTYPES.map(tt=>`<option value="${tt.id}"${tt.id===ttype?' selected':''}>${tt.label}</option>`).join('')}
-      </select>
-    </div>
-    ${ttype!=='local_tickets'?`
-    <div class="fg"><label>De la</label><input type="text" value="${esc(b.from||'')}" oninput="trip().transport[${i}].from=this.value;save()"></div>
-    <div class="fg"><label>Până la</label><input type="text" value="${esc(b.to||'')}" oninput="trip().transport[${i}].to=this.value;save()"></div>`:''}
-    ${sf}
-    ${ttype!=='local_tickets'?`
-    <div class="fg"><label>Nr. rezervare</label><input type="text" value="${esc(b.reservation||'')}" oninput="trip().transport[${i}].reservation=this.value;save()"></div>
-    <div class="fg"><label>Preț total</label>${priceRow(b.totalPrice,b.totalCur||'EUR',`trip().transport[${i}].totalPrice=this.value;save()`,`trip().transport[${i}].totalCur=this.value;save()`)}</div>`:''}
-  </div>
-  ${ttype!=='local_tickets'?`
-  <div class="grid2 mt8">
-    <div class="fg"><label>Data / ora plecare</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        ${date3Html(b.depDate,`trip().transport[${i}].depDate=iso;save()`)}
-        ${time24Html(b.depTime,`trip().transport[${i}].depTime=v;save()`)}
-      </div>
-    </div>
-    <div class="fg"><label>Data / ora sosire</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        ${date3Html(b.arrDate,`trip().transport[${i}].arrDate=iso;save()`)}
-        ${time24Html(b.arrTime,`trip().transport[${i}].arrTime=v;save()`)}
-      </div>
-    </div>
-  </div>
-  <div class="mt8">
-    <label class="cb-label">
-      <input type="checkbox" ${b.locked?'checked':''} onchange="trip().transport[${i}].locked=this.checked;save()">
-      🔒 Oră fixă — blocat în calendar
-    </label>
-  </div>`:''}
-  <div class="fg mt8"><label>Note</label>
-    <textarea oninput="trip().transport[${i}].notes=this.value;save()">${esc(b.notes||'')}</textarea>
-  </div>
-  ${accomSelector(i)}
-  ${parkingHtml}
-  ${withLuggage?`<div class="divlabel">👥 Persoane & Bagaje</div>${bodyPersonsInBlock(b,i)}`:''}`;
-}
-
-function bodyPersonsInBlock(b,i){
-  const t=trip(); if(!t) return '';
-  syncBP(b);
-  if(!(t.persons||[]).length) return `<p style="color:var(--text3);font-size:12px">Adaugă persoane în tab-ul 👥 Persoane.</p>`;
-  let h='<div class="person-grid">';
-  t.persons.forEach(p=>{
-    const pi=b.persons.findIndex(x=>x.pid===p.id);
-    const bp=b.persons[pi];
-    const lug=bp.luggage||[];
-    h+=`<div class="person-card">
-      <div class="person-name">👤 ${esc(p.name||'(fără nume)')}</div>
-      <div class="fg"><label>Preț bilet</label>${priceRow(bp.price,bp.cur||'EUR',`trip().transport[${i}].persons[${pi}].price=this.value;save()`,`trip().transport[${i}].persons[${pi}].cur=this.value;save()`)}</div>
-      <div class="fg"><label>Note</label><input type="text" value="${esc(bp.notes||'')}" oninput="trip().transport[${i}].persons[${pi}].notes=this.value;save()"></div>
-      <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;margin-bottom:6px">Bagaje</div>
-      ${lug.map((l,li)=>`<div class="lug-row">
-        <select onchange="trip().transport[${i}].persons[${pi}].luggage[${li}].type=this.value;save()">
-          ${LUGGAGE_TYPES.map(lt=>`<option value="${lt}"${lt===l.type?' selected':''}>${lt}</option>`).join('')}
-        </select>
-        <input type="number" value="${l.count||1}" min="1" oninput="trip().transport[${i}].persons[${pi}].luggage[${li}].count=parseInt(this.value)||1;save()">
-        <button class="mbtn" style="color:var(--red)" onclick="trip().transport[${i}].persons[${pi}].luggage.splice(${li},1);save();renderTransport()">✕</button>
-      </div>`).join('')}
-      <button class="btn btn-ghost btn-sm mt8" onclick="trip().transport[${i}].persons[${pi}].luggage.push({type:LUGGAGE_TYPES[0],count:1});save();renderTransport()">+ bagaj</button>
-    </div>`;
-  });
-  h+='</div>';
-  return h;
-}
-
-window.addLocalTicket = function(bi){
-  if(!trip().transport[bi].tickets) trip().transport[bi].tickets=[];
-  trip().transport[bi].tickets.push({id:uid(),period:'Săptămânal (7 zile)',count:1,price:'',cur:'EUR',notes:''});
-  save(); renderTransport();
-}
-
-window.addTransport = function(){
-  const t=trip(); if(!t) return;
-  if(!t.transport) t.transport=[];
-  t.transport.push({id:uid(),ttype:'avion',from:'',to:'',depDate:'',depTime:'',arrDate:'',arrTime:'',reservation:'',totalPrice:'',totalCur:'EUR',locked:false,notes:'',specific:{},persons:mkBP(t),_col:false});
-  save(); renderTransport();
-}
-window.toggleTr = function(i){ trip().transport[i]._col=!trip().transport[i]._col; save(); renderTransport(); }
-window.moveTr = function(i,d){ const tr=trip().transport; const n=i+d; if(n<0||n>=tr.length) return; [tr[i],tr[n]]=[tr[n],tr[i]]; save(); renderTransport(); }
-window.removeTr = function(i){ if(!confirm('Șterge deplasarea?')) return; trip().transport.splice(i,1); save(); renderTransport(); }
-
-// ═══════════════════════════
-// DATE HELPERS
-// ═══════════════════════════
-function isoToD(iso){ if(!iso) return {d:'',m:'',y:''}; const [y,mo,d]=iso.split('-'); return {d:d||'',m:mo||'',y:y||''}; }
-function dToIso(d,m,y){ if(!d||!m||!y) return ''; const ys=String(y); if(ys.length<4) return ''; return `${ys}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
-function fmtDateRo(iso){ if(!iso) return ''; const {d,m,y}=isoToD(iso); return `${d}/${m}/${y}`; }
-
-function renderDate3(containerId, isoVal){
-  const el=document.getElementById(containerId); if(!el) return;
-  const {d,m,y}=isoToD(isoVal||'');
-  el.innerHTML=`<input class="dd" type="number" min="1" max="31" placeholder="ZZ" value="${d}">
-    <span>/</span><input class="mm" type="number" min="1" max="12" placeholder="LL" value="${m}">
-    <span>/</span><input class="yy" type="number" min="2000" max="2099" placeholder="AAAA" value="${y}">`;
-}
-
-function getDate3(containerId){
-  const el=document.getElementById(containerId); if(!el) return '';
-  const inputs=el.querySelectorAll('input');
-  return dToIso(inputs[0].value, inputs[1].value, inputs[2].value);
 }
 
 function date3Html(isoVal, onChangeExpr){
@@ -1045,24 +618,444 @@ function date3Html(isoVal, onChangeExpr){
   </div>`;
 }
 
-function calcNights(checkin,checkout){
-  if(!checkin||!checkout) return 0;
-  const d=Math.round((new Date(checkout)-new Date(checkin))/(1000*60*60*24));
-  return d>0?d:0;
+function renderDate3(id, iso){
+  const el=document.getElementById(id); if(!el) return;
+  const {d,m,y}=isoToD(iso||'');
+  el.innerHTML=`<input class="dd" type="number" min="1" max="31" placeholder="ZZ" value="${d}">
+    <span>/</span><input class="mm" type="number" min="1" max="12" placeholder="LL" value="${m}">
+    <span>/</span><input class="yy" type="number" min="2000" max="2099" placeholder="AAAA" value="${y}">`;
 }
 
-function subtractMinutes(timeStr, mins){
-  if(!timeStr||!mins) return '';
-  const [h,m]=timeStr.split(':').map(Number);
-  const total=h*60+m-parseInt(mins);
-  const rh=Math.floor(((total%1440)+1440)%1440/60);
-  const rm=((total%1440)+1440)%60;
-  return `${String(rh).padStart(2,'0')}:${String(rm).padStart(2,'0')}`;
+function getDate3(id){
+  const el=document.getElementById(id); if(!el) return '';
+  const ins=el.querySelectorAll('input');
+  return dToIso(ins[0].value,ins[1].value,ins[2].value);
 }
 
-// ═══════════════════════════
+function time24Html(val, onChangeExpr){
+  const parts=(val||'').split(':');
+  const hh=parts[0]||''; const mm=parts[1]||'';
+  return `<div style="display:flex;gap:6px;align-items:center">
+    <input type="number" min="0" max="23" value="${hh}" placeholder="HH" style="width:60px;text-align:center"
+      oninput="(function(){var p=this.parentElement.querySelectorAll('input');var v=String(p[0].value).padStart(2,'0')+':'+String(p[1].value).padStart(2,'0');${onChangeExpr}}).call(this)">
+    <span style="color:var(--text3);font-weight:700;font-size:18px">:</span>
+    <input type="number" min="0" max="59" value="${mm}" placeholder="MM" style="width:60px;text-align:center"
+      oninput="(function(){var p=this.parentElement.querySelectorAll('input');var v=String(p[0].value).padStart(2,'0')+':'+String(p[1].value).padStart(2,'0');${onChangeExpr}}).call(this)">
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+// SCREENS & NAVIGATION
+// ═══════════════════════════════════════
+window.showScreen = function(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  document.getElementById('screen-'+id).classList.add('on');
+}
+
+window.showMoreMenu = function(){
+  // Update active state in more menu
+  document.querySelectorAll('.more-item').forEach(el=>el.classList.remove('on'));
+  const activeMore = document.getElementById('more-'+currentTab);
+  if(activeMore) activeMore.classList.add('on');
+  document.getElementById('screen-more').classList.add('on');
+}
+
+window.hideMoreMenu = function(){
+  document.getElementById('screen-more').classList.remove('on');
+}
+
+window.showTTabFromMore = function(name){
+  hideMoreMenu();
+  showTTab(name);
+}
+
+window.showTripOptions = function(){
+  // Options for trips list
+  const overlay = document.getElementById('trip-options-overlay');
+  document.getElementById('trip-options-content').innerHTML = `
+    <button class="btn btn-ghost btn-full" style="margin-bottom:8px" onclick="exportJSON();document.getElementById('trip-options-overlay').style.display='none'">⬇ Export JSON</button>
+    <button class="btn btn-ghost btn-full" style="margin-bottom:8px" onclick="importJSON();document.getElementById('trip-options-overlay').style.display='none'">⬆ Import JSON</button>
+    <button class="btn btn-ghost btn-full" style="margin-bottom:8px" onclick="changeFamily();document.getElementById('trip-options-overlay').style.display='none'">🔑 Schimbă cod familie</button>
+    <button class="btn btn-ghost btn-full" onclick="document.getElementById('trip-options-overlay').style.display='none'">Anulează</button>
+  `;
+  overlay.style.display = 'flex';
+}
+
+// ═══════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════
+function renderHome(){
+  if(!document.getElementById('screen-trips').classList.contains('on')) return;
+  const g=document.getElementById('trips-grid');
+  let h='';
+  D.trips.forEach((t,i)=>{
+    const col=COLORS[i%COLORS.length];
+    const dur=tripDuration(t);
+    const persons=(t.persons||[]).length;
+    const daysLeft = t.start ? Math.ceil((new Date(t.start+'T12:00:00')-new Date())/(864e5)) : null;
+    const daysLeftStr = daysLeft!==null && daysLeft>0 ? `<span style="color:var(--accent2);font-size:11px">⏳ ${daysLeft} zile</span>` : daysLeft===0||daysLeft<0&&daysLeft>-parseInt(dur) ? `<span style="color:var(--green);font-size:11px">✈ În desfășurare</span>` : '';
+    h+=`<div class="trip-card" onclick="openTrip('${t.id}')">
+      <div class="trip-card-accent ${col}"></div>
+      <h3>${esc(t.name||'Excursie')}</h3>
+      <div class="trip-card-dates">${fmtDate(t.start)} → ${fmtDate(t.end)}${dur?' · '+dur:''}</div>
+      <div class="trip-card-dest">${esc(t.destinations||'—')}</div>
+      <div class="trip-card-footer">
+        <span class="trip-card-persons">👥 ${persons}</span>
+        ${daysLeftStr}
+      </div>
+      <div style="position:absolute;top:10px;right:10px;display:flex;gap:4px;opacity:0.7">
+        <button class="mbtn btn-sm" onclick="event.stopPropagation();editTrip('${t.id}')" style="font-size:16px">✏</button>
+        <button class="mbtn btn-sm" onclick="event.stopPropagation();deleteTrip('${t.id}')" style="font-size:16px;color:var(--red)">✕</button>
+      </div>
+    </div>`;
+  });
+  h+=`<div class="new-trip-card" onclick="newTrip()">
+    <div class="emo">＋</div>
+    <span>Excursie nouă</span>
+  </div>`;
+  g.innerHTML=h;
+}
+
+// ═══════════════════════════════════════
+// TRIP CRUD
+// ═══════════════════════════════════════
+let editingTripId=null;
+
+window.newTrip = function(){
+  editingTripId=null;
+  document.getElementById('modal-trip-title').textContent='Excursie nouă';
+  document.getElementById('mt-name').value='';
+  document.getElementById('mt-dest').value='';
+  document.getElementById('mt-notes').value='';
+  document.getElementById('modal-trip').classList.add('on');
+  setTimeout(()=>{ renderDate3('dt-start',''); renderDate3('dt-end',''); },0);
+}
+window.editTrip = function(id){
+  const t=D.trips.find(x=>x.id===id);
+  editingTripId=id;
+  document.getElementById('modal-trip-title').textContent='Editează excursia';
+  document.getElementById('mt-name').value=t.name||'';
+  document.getElementById('mt-dest').value=t.destinations||'';
+  document.getElementById('mt-notes').value=t.notes||'';
+  document.getElementById('modal-trip').classList.add('on');
+  setTimeout(()=>{ renderDate3('dt-start',t.start||''); renderDate3('dt-end',t.end||''); },0);
+}
+window.editTripMeta = function(){ editTrip(currentTripId); }
+window.saveTrip = function(){
+  const name=document.getElementById('mt-name').value.trim();
+  if(!name){ alert('Introdu un nume!'); return; }
+  const start=getDate3('dt-start'); const end=getDate3('dt-end');
+  if(editingTripId){
+    const t=D.trips.find(x=>x.id===editingTripId);
+    t.name=name; t.start=start; t.end=end;
+    t.destinations=document.getElementById('mt-dest').value;
+    t.notes=document.getElementById('mt-notes').value;
+  } else {
+    D.trips.push({id:uid(),name,start,end,
+      destinations:document.getElementById('mt-dest').value,
+      notes:document.getElementById('mt-notes').value,
+      persons:[],transport:[],accom:[],objectives:[],ideas:[],
+      todo:{Documente:[],Transport:[],Cazare:[],Activități:[],Cumpărături:[],Altele:[]},
+      budgetExtras:[]});
+  }
+  save(); closeModal();
+  if(editingTripId&&currentTripId===editingTripId) updateTripHeader();
+  else renderHome();
+}
+window.deleteTrip = function(id){
+  if(!confirm('Șterge excursia?')) return;
+  D.trips=D.trips.filter(t=>t.id!==id); save(); renderHome();
+}
+window.closeModal = function(){
+  document.getElementById('modal-trip').classList.remove('on');
+}
+
+// ═══════════════════════════════════════
+// OPEN TRIP
+// ═══════════════════════════════════════
+window.openTrip = function(id){
+  currentTripId=id;
+  updateTripHeader();
+  showScreen('trip');
+  showTTab('persons');
+}
+window.goHome = function(){
+  currentTripId=null;
+  if(globalMap){ globalMap.remove(); globalMap=null; }
+  showScreen('trips');
+  renderHome();
+}
+function updateTripHeader(){
+  const t=trip(); if(!t) return;
+  document.getElementById('trip-name-display').textContent=t.name||'';
+  const dur=tripDuration(t);
+  document.getElementById('trip-summary').textContent=[t.destinations,dur].filter(Boolean).join(' · ');
+}
+
+// ═══════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════
+const MAIN_TABS=['persons','transport','accom','calendar'];
+
+window.showTTab = function(name){
+  currentTab=name;
+  document.querySelectorAll('.tpane').forEach(p=>p.classList.remove('on'));
+  document.getElementById('tpane-'+name).classList.add('on');
+
+  // Update bottom nav
+  document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('on'));
+  if(MAIN_TABS.includes(name)){
+    const btn=document.getElementById('bnav-'+name);
+    if(btn) btn.classList.add('on');
+  } else {
+    document.getElementById('bnav-more').classList.add('on');
+  }
+
+  // Map tab — no padding
+  const content=document.getElementById('trip-content');
+  if(name==='map'){
+    content.style.padding='0';
+    content.style.overflow='hidden';
+  } else {
+    content.style.padding='16px';
+    content.style.paddingBottom='calc(var(--bottom-nav) + 16px)';
+    content.style.overflow='auto';
+  }
+
+  // FAB action
+  const fab=document.getElementById('trip-fab');
+  const fabActions={'persons':'addPerson','transport':'addTransport','accom':'addAccom','obj':'addObj','ideas':'addIdea','todo':'','budget':'','calendar':'','map':'','assistant':''};
+  if(fabActions[name]){
+    fab.style.display='flex';
+    fab.onclick=window[fabActions[name]];
+  } else {
+    fab.style.display='none';
+  }
+
+  renderTab(name);
+}
+
+function renderTab(name){
+  if(name==='persons')   renderPersons();
+  if(name==='transport') renderTransport();
+  if(name==='accom')     renderAccom();
+  if(name==='obj')       renderObj();
+  if(name==='ideas')     renderIdeas();
+  if(name==='todo')      renderTodo();
+  if(name==='budget')    renderBudget();
+  if(name==='calendar')  renderCalendar();
+  if(name==='map')       renderMapTab();
+  if(name==='assistant') renderAssistant();
+}
+
+window.tripFabAction = function(){ /* set per tab */ }
+
+// ═══════════════════════════════════════
+// PERSONS
+// ═══════════════════════════════════════
+function renderPersons(){
+  const t=trip(); if(!t) return;
+  const el=document.getElementById('tpane-persons');
+  let h=`<div class="stitle">👥 Persoane <span class="badge">${(t.persons||[]).length}</span></div>`;
+  if(!(t.persons||[]).length){
+    h+=`<div class="empty"><div class="emo">👤</div><p>Nicio persoană adăugată.<br>Apasă + pentru a adăuga.</p></div>`;
+  } else {
+    t.persons.forEach((p,i)=>{
+      h+=`<div class="bcard"><div class="bcard-body">
+        <div class="row">
+          <div style="flex:1">
+            <div class="fg"><label>Nume complet</label>
+              <input type="text" value="${esc(p.name)}" placeholder="Ion Popescu"
+                oninput="trip().persons[${i}].name=this.value;save()">
+            </div>
+            <div class="fg"><label>Note (pașaport, alergii...)</label>
+              <input type="text" value="${esc(p.notes||'')}"
+                oninput="trip().persons[${i}].notes=this.value;save()">
+            </div>
+          </div>
+          <button class="mbtn" style="color:var(--red);margin-top:20px;flex-shrink:0;font-size:20px"
+            onclick="removePerson(${i})">✕</button>
+        </div>
+      </div></div>`;
+    });
+  }
+  el.innerHTML=h;
+}
+
+window.addPerson = function(){
+  const t=trip(); if(!t) return;
+  if(!t.persons) t.persons=[];
+  t.persons.push({id:uid(),name:'',notes:''});
+  save(); renderPersons();
+}
+window.removePerson = function(i){
+  if(!confirm('Șterge persoana?')) return;
+  trip().persons.splice(i,1); save(); renderPersons();
+}
+
+// ═══════════════════════════════════════
+// TRANSPORT
+// ═══════════════════════════════════════
+const TTYPES=[
+  {id:'avion',label:'✈️ Avion'},{id:'tren',label:'🚂 Tren'},
+  {id:'autocar',label:'🚌 Autocar'},{id:'taxi',label:'🚕 Taxi / Uber'},
+  {id:'masina_proprie',label:'🚗 Mașină proprie'},
+  {id:'masina_inchiriata',label:'🚗 Mașină închiriată'},
+  {id:'local',label:'🚇 Transport local'},
+  {id:'local_tickets',label:'🎫 Bilete / Card local'},
+  {id:'feribot',label:'⛴ Feribot'},
+  {id:'altul',label:'🚶 Altul'},
+];
+const LUGGAGE_TYPES=['🎒 Bagaj mic sub scaun','🧳 Bagaj cabină overhead','📦 Cală 20kg','📦 Cală 23kg','📦 Cală 25kg','📦 Cală 30kg'];
+const TICKET_PERIODS=['Bilet individual','Zilnic','2 zile','3 zile','Săptămânal (7 zile)','Lunar','Altul'];
+
+function ttLabel(id){ return (TTYPES.find(t=>t.id===id)||{label:id}).label; }
+function mkBP(t){ return (t.persons||[]).map(p=>({pid:p.id,price:'',cur:'EUR',luggage:[],notes:''})); }
+function syncBP(blk){
+  const t=trip(); if(!t) return;
+  if(!blk.persons) blk.persons=[];
+  (t.persons||[]).forEach(p=>{ if(!blk.persons.find(x=>x.pid===p.id)) blk.persons.push({pid:p.id,price:'',cur:'EUR',luggage:[],notes:''}); });
+  blk.persons=blk.persons.filter(x=>(t.persons||[]).find(p=>p.id===x.pid));
+}
+
+function renderTransport(){
+  const t=trip(); if(!t) return;
+  if(!t.transport) t.transport=[];
+  const el=document.getElementById('tpane-transport');
+  let h=`<div class="stitle">🚌 Transport <span class="badge">${t.transport.length}</span></div>`;
+  if(!t.transport.length){
+    h+=`<div class="empty"><div class="emo">🚌</div><p>Nicio deplasare adăugată.<br>Apasă + pentru a adăuga.</p></div>`;
+  } else {
+    t.transport.forEach((b,i)=>{
+      const label=ttLabel(b.ttype||'avion');
+      let sub=[b.from,b.to].filter(Boolean).join(' → ');
+      if(b.depDate) sub+=(sub?' · ':'')+fmtDateRo(b.depDate)+(b.depTime?' '+b.depTime:'');
+      h+=`<div class="bcard ${b._col?'col':''}">
+        <div class="bcard-hdr" onclick="toggleTr(${i})">
+          <span class="bcard-icon">${label.split(' ')[0]}</span>
+          <div style="flex:1;min-width:0">
+            <div class="bcard-title">${label}</div>
+            ${sub?`<div class="bcard-sub">${esc(sub)}</div>`:''}
+          </div>
+          <div class="bcard-ctrl" onclick="event.stopPropagation()">
+            <button class="mbtn" style="color:var(--red);font-size:18px" onclick="removeTr(${i})">✕</button>
+          </div>
+          <span class="chevron">${b._col?'▶':'▼'}</span>
+        </div>
+        <div class="bcard-body">${bodyTransport(b,i)}</div>
+      </div>`;
+    });
+  }
+  el.innerHTML=h;
+}
+
+function bodyTransport(b,i){
+  const ttype=b.ttype||'avion';
+  const sp=b.specific||{};
+  const withLuggage=(ttype==='avion'||ttype==='tren');
+  let sf='';
+  if(ttype==='avion') sf=`
+    <div class="fg"><label>Companie</label><input type="text" value="${esc(sp.airline||'')}" oninput="trip().transport[${i}].specific.airline=this.value;save()"></div>
+    <div class="fg"><label>Nr. zbor</label><input type="text" value="${esc(sp.flightNum||'')}" placeholder="RO1234" oninput="trip().transport[${i}].specific.flightNum=this.value;save()"></div>`;
+  else if(ttype==='tren') sf=`
+    <div class="fg"><label>Operator</label><input type="text" value="${esc(sp.operator||'')}" oninput="trip().transport[${i}].specific.operator=this.value;save()"></div>
+    <div class="fg"><label>Nr. tren / Vagon</label><input type="text" value="${esc(sp.trainNum||'')}" oninput="trip().transport[${i}].specific.trainNum=this.value;save()"></div>`;
+  else if(ttype==='local_tickets'){
+    if(!b.tickets) b.tickets=[];
+    sf=`<div style="grid-column:1/-1">
+      ${b.tickets.map((tk,ti)=>`<div class="bcard" style="margin-bottom:8px">
+        <div class="bcard-hdr">
+          <span class="bcard-icon">🎫</span>
+          <div style="flex:1"><div class="bcard-title">Bilet ${ti+1}</div></div>
+          <button class="mbtn" style="color:var(--red)" onclick="trip().transport[${i}].tickets.splice(${ti},1);save();renderTransport()">✕</button>
+        </div>
+        <div class="bcard-body">
+          <div class="fg"><label>Tip perioadă</label>
+            <select onchange="trip().transport[${i}].tickets[${ti}].period=this.value;save()">
+              ${TICKET_PERIODS.map(p=>`<option value="${p}"${p===tk.period?' selected':''}>${p}</option>`).join('')}
+            </select>
+          </div>
+          <div class="grid2">
+            <div class="fg"><label>Nr. bilete</label><input type="number" value="${tk.count||1}" min="1" oninput="trip().transport[${i}].tickets[${ti}].count=parseInt(this.value)||1;save()"></div>
+            <div class="fg"><label>Preț / bilet</label>${priceRow(tk.price,tk.cur||'EUR',`trip().transport[${i}].tickets[${ti}].price=this.value;save()`,`trip().transport[${i}].tickets[${ti}].cur=this.value;save()`)}</div>
+          </div>
+          <div class="fg"><label>Note</label><input type="text" value="${esc(tk.notes||'')}" oninput="trip().transport[${i}].tickets[${ti}].notes=this.value;save()"></div>
+        </div>
+      </div>`).join('')}
+      <button class="btn btn-ghost btn-sm" onclick="addLocalTicket(${i})">+ Adaugă bilet</button>
+    </div>`;
+  }
+
+  return `
+  <div class="fg"><label>Tip transport</label>
+    <select onchange="trip().transport[${i}].ttype=this.value;trip().transport[${i}].specific={};save();renderTransport()">
+      ${TTYPES.map(tt=>`<option value="${tt.id}"${tt.id===ttype?' selected':''}>${tt.label}</option>`).join('')}
+    </select>
+  </div>
+  ${ttype!=='local_tickets'?`
+  <div class="grid2">
+    <div class="fg"><label>De la</label><input type="text" value="${esc(b.from||'')}" oninput="trip().transport[${i}].from=this.value;save()"></div>
+    <div class="fg"><label>Până la</label><input type="text" value="${esc(b.to||'')}" oninput="trip().transport[${i}].to=this.value;save()"></div>
+  </div>`:''}
+  ${sf}
+  ${ttype!=='local_tickets'?`
+  <div class="fg"><label>Data / ora plecare</label>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      ${date3Html(b.depDate,`trip().transport[${i}].depDate=iso;save()`)}
+      ${time24Html(b.depTime,`trip().transport[${i}].depTime=v;save()`)}
+    </div>
+  </div>
+  <div class="fg"><label>Data / ora sosire</label>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      ${date3Html(b.arrDate,`trip().transport[${i}].arrDate=iso;save()`)}
+      ${time24Html(b.arrTime,`trip().transport[${i}].arrTime=v;save()`)}
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="fg"><label>Nr. rezervare</label><input type="text" value="${esc(b.reservation||'')}" oninput="trip().transport[${i}].reservation=this.value;save()"></div>
+    <div class="fg"><label>Preț total</label>${priceRow(b.totalPrice,b.totalCur||'EUR',`trip().transport[${i}].totalPrice=this.value;save()`,`trip().transport[${i}].totalCur=this.value;save()`)}</div>
+  </div>
+  <label class="cb-label mt8">
+    <input type="checkbox" ${b.locked?'checked':''} onchange="trip().transport[${i}].locked=this.checked;save()">
+    🔒 Oră fixă în calendar
+  </label>`:''}
+  <div class="fg mt8"><label>Note</label><textarea oninput="trip().transport[${i}].notes=this.value;save()">${esc(b.notes||'')}</textarea></div>
+  ${withLuggage?`<div class="divlabel">👥 Persoane & Bagaje</div>${bodyPersonsInBlock(b,i)}`:''}`;
+}
+
+function bodyPersonsInBlock(b,i){
+  const t=trip(); if(!t) return '';
+  syncBP(b);
+  if(!(t.persons||[]).length) return `<p class="text-sm text-muted">Adaugă persoane în tab-ul 👥.</p>`;
+  let h='';
+  t.persons.forEach(p=>{
+    const pi=b.persons.findIndex(x=>x.pid===p.id);
+    const bp=b.persons[pi];
+    h+=`<div class="person-card">
+      <div class="person-name">👤 ${esc(p.name||'(fără nume)')}</div>
+      <div class="fg"><label>Preț bilet</label>${priceRow(bp.price,bp.cur||'EUR',`trip().transport[${i}].persons[${pi}].price=this.value;save()`,`trip().transport[${i}].persons[${pi}].cur=this.value;save()`)}</div>
+      <div class="fg"><label>Note</label><input type="text" value="${esc(bp.notes||'')}" oninput="trip().transport[${i}].persons[${pi}].notes=this.value;save()"></div>
+      ${(bp.luggage||[]).map((l,li)=>`<div class="lug-row">
+        <select onchange="trip().transport[${i}].persons[${pi}].luggage[${li}].type=this.value;save()">
+          ${LUGGAGE_TYPES.map(lt=>`<option value="${lt}"${lt===l.type?' selected':''}>${lt}</option>`).join('')}
+        </select>
+        <input type="number" value="${l.count||1}" min="1" style="width:60px" oninput="trip().transport[${i}].persons[${pi}].luggage[${li}].count=parseInt(this.value)||1;save()">
+        <button class="mbtn" style="color:var(--red)" onclick="trip().transport[${i}].persons[${pi}].luggage.splice(${li},1);save();renderTransport()">✕</button>
+      </div>`).join('')}
+      <button class="btn btn-ghost btn-sm mt8" onclick="trip().transport[${i}].persons[${pi}].luggage.push({type:LUGGAGE_TYPES[0],count:1});save();renderTransport()">+ bagaj</button>
+    </div>`;
+  });
+  return h;
+}
+
+window.addLocalTicket = function(bi){ if(!trip().transport[bi].tickets) trip().transport[bi].tickets=[]; trip().transport[bi].tickets.push({id:uid(),period:'Săptămânal (7 zile)',count:1,price:'',cur:'EUR',notes:''}); save(); renderTransport(); }
+window.addTransport = function(){ const t=trip(); if(!t) return; if(!t.transport) t.transport=[]; t.transport.push({id:uid(),ttype:'avion',from:'',to:'',depDate:'',depTime:'',arrDate:'',arrTime:'',reservation:'',totalPrice:'',totalCur:'EUR',locked:false,notes:'',specific:{},persons:mkBP(t),_col:false}); save(); renderTransport(); }
+window.toggleTr = function(i){ trip().transport[i]._col=!trip().transport[i]._col; save(); renderTransport(); }
+window.removeTr = function(i){ if(!confirm('Șterge?')) return; trip().transport.splice(i,1); save(); renderTransport(); }
+
+// ═══════════════════════════════════════
 // ACCOMMODATION
-// ═══════════════════════════
+// ═══════════════════════════════════════
 const ACCOM_TYPES=['Hotel','Apartament (Airbnb)','Apartament (Booking)','Hostel','Vilă','Pensiune','Altul'];
 
 function renderAccom(){
@@ -1070,36 +1063,32 @@ function renderAccom(){
   if(!t.accom) t.accom=[];
   const el=document.getElementById('tpane-accom');
   let h=`<div class="stitle">🏨 Cazare <span class="badge">${t.accom.length}</span></div>`;
-  h+=`<div style="margin-bottom:16px"><button class="btn btn-primary" onclick="addAccom()">+ Adaugă cazare</button></div>`;
   if(!t.accom.length){
-    h+=`<div class="empty"><div class="emo">🏨</div><p>Nicio cazare adăugată încă.</p></div>`;
+    h+=`<div class="empty"><div class="emo">🏨</div><p>Nicio cazare adăugată.<br>Apasă + pentru a adăuga.</p></div>`;
   } else {
-    t.accom.forEach((a,i)=>{ h+=renderAccomBlock(a,i); });
+    t.accom.forEach((a,i)=>{
+      const nights=calcNights(a.checkin,a.checkout);
+      let sub=[a.accomType||'',a.city].filter(Boolean).join(' · ');
+      if(a.checkin) sub+=(sub?' — ':'')+fmtDateRo(a.checkin)+' → '+fmtDateRo(a.checkout||'');
+      h+=`<div class="bcard ${a._col?'col':''}">
+        <div class="bcard-hdr" onclick="toggleAc(${i})">
+          <span class="bcard-icon">🏨</span>
+          <div style="flex:1;min-width:0">
+            <div class="bcard-title">${esc(a.hotel||'Cazare')}</div>
+            ${sub?`<div class="bcard-sub">${esc(sub)}${nights?' ('+nights+' nopți)':''}</div>`:''}
+          </div>
+          <div class="bcard-ctrl" onclick="event.stopPropagation()">
+            <button class="mbtn" style="color:var(--red);font-size:18px" onclick="removeAc(${i})">✕</button>
+          </div>
+          <span class="chevron">${a._col?'▶':'▼'}</span>
+        </div>
+        <div class="bcard-body">${bodyAccom(a,i)}</div>
+      </div>`;
+    });
   }
   el.innerHTML=h;
-}
-
-function renderAccomBlock(a,i){
-  const t=trip();
-  const nights=calcNights(a.checkin,a.checkout);
-  let sub=[a.accomType||'',a.hotel,a.city].filter(Boolean).join(' · ');
-  if(a.checkin) sub+=(sub?' — ':'')+fmtDateRo(a.checkin)+' → '+fmtDateRo(a.checkout||'');
-  return `<div class="bcard ${a._col?'col':''}" id="ac-${a.id}">
-    <div class="bcard-hdr" onclick="toggleAc(${i})">
-      <span class="bcard-icon">🏨</span>
-      <div class="flex1">
-        <div class="bcard-title">${esc(a.hotel||'Cazare fără nume')}</div>
-        ${sub?`<div class="bcard-sub">${esc(sub)}${nights?' ('+nights+' nopți)':''}</div>`:''}
-      </div>
-      <div class="bcard-ctrl" onclick="event.stopPropagation()">
-        ${i>0?`<button class="mbtn" onclick="moveAc(${i},-1)">▲</button>`:''}
-        ${i<t.accom.length-1?`<button class="mbtn" onclick="moveAc(${i},1)">▼</button>`:''}
-        <button class="mbtn" style="color:var(--red)" onclick="removeAc(${i})">✕</button>
-      </div>
-      <span class="chevron">${a._col?'▶':'▼'}</span>
-    </div>
-    <div class="bcard-body">${bodyAccom(a,i)}</div>
-  </div>`;
+  // init mini maps
+  t.accom.forEach(a=>{ if(a.lat&&a.lng) refreshMiniMap('minimap-ac-'+a.id,a.lat,a.lng,a.hotel); });
 }
 
 function bodyAccom(a,i){
@@ -1110,69 +1099,60 @@ function bodyAccom(a,i){
   (t.persons||[]).forEach(p=>{ if(!a.roomPersons.find(x=>x.pid===p.id)) a.roomPersons.push({pid:p.id,room:''}); });
   a.roomPersons=a.roomPersons.filter(x=>(t.persons||[]).find(p=>p.id===x.pid));
 
-  let persHtml='';
-  if(!(t.persons||[]).length){
-    persHtml=`<p style="color:var(--text3);font-size:12px">Adaugă persoane în tab-ul 👥 Persoane.</p>`;
-  } else {
-    persHtml=`<div style="display:flex;flex-direction:column;gap:6px">
-    ${(t.persons||[]).map((p,pi)=>{
-      const rpi=a.roomPersons.findIndex(x=>x.pid===p.id);
-      return `<div style="display:flex;align-items:center;gap:10px">
-        <span style="min-width:140px;font-size:13px">👤 ${esc(p.name||'(fără nume)')}</span>
-        <input type="text" value="${esc(a.roomPersons[rpi]?.room||'')}" placeholder="nr/tip cameră"
-          style="max-width:240px" oninput="trip().accom[${i}].roomPersons[${rpi}].room=this.value;save()">
-      </div>`;
-    }).join('')}</div>`;
-  }
-
   return `
-  <div class="grid3">
-    <div class="fg"><label>Tip cazare</label>
-      <select onchange="trip().accom[${i}].accomType=this.value;save();renderAccom()">
-        ${ACCOM_TYPES.map(tp=>`<option value="${tp}"${tp===(a.accomType||'Hotel')?' selected':''}>${tp}</option>`).join('')}
-      </select>
-    </div>
-    <div class="fg"><label>Denumire</label><input type="text" value="${esc(a.hotel||'')}" oninput="trip().accom[${i}].hotel=this.value;save()"></div>
-    <div class="fg"><label>Oraș</label><input type="text" value="${esc(a.city||'')}" oninput="trip().accom[${i}].city=this.value;save()"></div>
-    <div class="fg"><label>Adresă</label><input type="text" value="${esc(a.address||'')}" oninput="trip().accom[${i}].address=this.value;save()"></div>
-    <div class="fg"><label>Nr. rezervare</label><input type="text" value="${esc(a.reservation||'')}" oninput="trip().accom[${i}].reservation=this.value;save()"></div>
-    <div class="fg"><label>Contact</label><input type="text" value="${esc(a.contact||'')}" oninput="trip().accom[${i}].contact=this.value;save()"></div>
+  <div class="fg"><label>Tip cazare</label>
+    <select onchange="trip().accom[${i}].accomType=this.value;save()">
+      ${ACCOM_TYPES.map(tp=>`<option value="${tp}"${tp===(a.accomType||'Hotel')?' selected':''}>${tp}</option>`).join('')}
+    </select>
   </div>
-  <div class="grid3 mt8">
-    <div class="fg"><label>Check-in</label>${date3Html(a.checkin,`trip().accom[${i}].checkin=iso;save();refreshAccomNights(${i})`)}</div>
-    <div class="fg"><label>Check-out</label>${date3Html(a.checkout,`trip().accom[${i}].checkout=iso;save();refreshAccomNights(${i})`)}</div>
+  <div class="fg"><label>Denumire</label><input type="text" value="${esc(a.hotel||'')}" oninput="trip().accom[${i}].hotel=this.value;save()"></div>
+  <div class="grid2">
+    <div class="fg"><label>Oraș</label><input type="text" value="${esc(a.city||'')}" oninput="trip().accom[${i}].city=this.value;save()"></div>
+    <div class="fg"><label>Nr. rezervare</label><input type="text" value="${esc(a.reservation||'')}" oninput="trip().accom[${i}].reservation=this.value;save()"></div>
+  </div>
+  <div class="fg"><label>Adresă</label><input type="text" value="${esc(a.address||'')}" oninput="trip().accom[${i}].address=this.value;save()"></div>
+  <div class="fg"><label>Contact</label><input type="text" value="${esc(a.contact||'')}" oninput="trip().accom[${i}].contact=this.value;save()"></div>
+  <div class="fg"><label>Check-in</label>${date3Html(a.checkin,`trip().accom[${i}].checkin=iso;save();refreshAccomNights(${i})`)}</div>
+  <div class="fg"><label>Check-out</label>${date3Html(a.checkout,`trip().accom[${i}].checkout=iso;save();refreshAccomNights(${i})`)}</div>
+  <div class="grid2">
     <div class="fg"><label>Nopți</label>
-      <div id="nights-${a.id}" style="padding:7px 10px;background:var(--bg3);border-radius:var(--rs);font-weight:600;color:${nights?'var(--accent2)':'var(--text3)'}">
-        ${nights||'—'}
-      </div>
+      <div id="nights-${a.id}" style="padding:11px 13px;background:var(--bg3);border-radius:var(--rs);font-weight:700;color:${nights?'var(--accent2)':'var(--text3)'}">${nights||'—'}</div>
     </div>
     <div class="fg"><label>Preț / noapte</label>${priceRow(a.pricePN,a.pricePNCur||'EUR',`trip().accom[${i}].pricePN=this.value;save();refreshAccomNights(${i})`,`trip().accom[${i}].pricePNCur=this.value;save()`)}</div>
-    <div class="fg"><label>Preț total manual</label>${priceRow(a.totalPrice,a.totalCur||'EUR',`trip().accom[${i}].totalPrice=this.value;save()`,`trip().accom[${i}].totalCur=this.value;save()`)}</div>
-    <div class="fg"><label>Total calculat</label>
-      <div id="autototal-${a.id}" style="padding:7px 10px;background:var(--green-dim);border:1px solid var(--green);border-radius:var(--rs);font-size:13px;color:var(--green)">
-        ${autoTotal?nights+' × '+a.pricePN+' '+( a.pricePNCur||'EUR')+' = '+autoTotal:'—'}
-      </div>
+  </div>
+  <div class="fg"><label>Total calculat</label>
+    <div id="autototal-${a.id}" style="padding:11px 13px;background:var(--green-dim);border:1.5px solid var(--green);border-radius:var(--rs);font-size:14px;color:var(--green)">
+      ${autoTotal?nights+' nopți × '+a.pricePN+' '+(a.pricePNCur||'EUR')+' = '+autoTotal:'—'}
     </div>
   </div>
+  <div class="fg"><label>Preț total manual</label>${priceRow(a.totalPrice,a.totalCur||'EUR',`trip().accom[${i}].totalPrice=this.value;save()`,`trip().accom[${i}].totalCur=this.value;save()`)}</div>
   <div class="fg mt8"><label>Note</label><textarea oninput="trip().accom[${i}].notes=this.value;save()">${esc(a.notes||'')}</textarea></div>
   <div class="divlabel">📍 Locație pe hartă</div>
-  <div class="grid3">
+  <div class="grid2">
     <div class="fg"><label>Latitudine</label>
-      <input type="number" step="any" value="${a.lat||''}" placeholder="ex: 48.8566"
+      <input type="number" step="any" value="${a.lat||''}" placeholder="48.8566"
         oninput="trip().accom[${i}].lat=parseFloat(this.value)||'';save();refreshMiniMap('minimap-ac-${a.id}',trip().accom[${i}].lat,trip().accom[${i}].lng,trip().accom[${i}].hotel)">
     </div>
     <div class="fg"><label>Longitudine</label>
-      <input type="number" step="any" value="${a.lng||''}" placeholder="ex: 2.3522"
+      <input type="number" step="any" value="${a.lng||''}" placeholder="2.3522"
         oninput="trip().accom[${i}].lng=parseFloat(this.value)||'';save();refreshMiniMap('minimap-ac-${a.id}',trip().accom[${i}].lat,trip().accom[${i}].lng,trip().accom[${i}].hotel)">
     </div>
-    <div class="fg"><label>Extrage din link Google Maps</label>
-      <input type="url" placeholder="Lipește link Google Maps..."
-        oninput="extractCoordsFromUrlAccom(this.value,${i})">
-    </div>
+  </div>
+  <div class="fg"><label>Sau lipește link Google Maps</label>
+    <input type="url" placeholder="https://maps.google.com/..." oninput="extractCoordsFromUrlAccom(this.value,${i})">
   </div>
   ${a.lat&&a.lng?`<div id="minimap-ac-${a.id}" class="mini-map"></div>`:''}
   <div class="divlabel">👥 Persoane & Camere</div>
-  ${persHtml}`;
+  ${(t.persons||[]).length?`<div style="display:flex;flex-direction:column;gap:8px">
+    ${(t.persons||[]).map((p,pi)=>{
+      const rpi=a.roomPersons.findIndex(x=>x.pid===p.id);
+      return `<div style="display:flex;align-items:center;gap:10px">
+        <span style="min-width:120px;font-size:14px">👤 ${esc(p.name||'?')}</span>
+        <input type="text" value="${esc(a.roomPersons[rpi]?.room||'')}" placeholder="nr. cameră"
+          oninput="trip().accom[${i}].roomPersons[${rpi}].room=this.value;save()">
+      </div>`;
+    }).join('')}
+  </div>`:`<p class="text-sm text-muted">Adaugă persoane în tab-ul 👥.</p>`}`;
 }
 
 window.refreshAccomNights = function(i){
@@ -1181,92 +1161,57 @@ window.refreshAccomNights = function(i){
   const nd=document.getElementById('nights-'+a.id);
   if(nd){ nd.textContent=nights||'—'; nd.style.color=nights?'var(--accent2)':'var(--text3)'; }
   const td=document.getElementById('autototal-'+a.id);
-  if(td){
-    if(nights&&a.pricePN){
-      const tot=(nights*parseFloat(a.pricePN)).toFixed(2);
-      td.textContent=`${nights} × ${a.pricePN} ${a.pricePNCur||'EUR'} = ${tot} ${a.pricePNCur||'EUR'}`;
-    } else { td.textContent='—'; }
-  }
+  if(td){ td.textContent=nights&&a.pricePN?`${nights} nopți × ${a.pricePN} ${a.pricePNCur||'EUR'} = ${(nights*parseFloat(a.pricePN)).toFixed(2)} ${a.pricePNCur||'EUR'}`:'—'; }
 }
-
-window.addAccom = function(){
-  const t=trip(); if(!t) return;
-  if(!t.accom) t.accom=[];
-  t.accom.push({id:uid(),accomType:'Hotel',hotel:'',city:'',address:'',contact:'',reservation:'',checkin:'',checkout:'',pricePN:'',pricePNCur:'EUR',totalPrice:'',totalCur:'EUR',notes:'',roomPersons:[],_col:false});
-  save(); renderAccom();
-}
+window.addAccom = function(){ const t=trip(); if(!t) return; if(!t.accom) t.accom=[]; t.accom.push({id:uid(),accomType:'Hotel',hotel:'',city:'',address:'',contact:'',reservation:'',checkin:'',checkout:'',pricePN:'',pricePNCur:'EUR',totalPrice:'',totalCur:'EUR',notes:'',roomPersons:[],_col:false}); save(); renderAccom(); }
 window.toggleAc = function(i){ trip().accom[i]._col=!trip().accom[i]._col; save(); renderAccom(); }
-window.moveAc = function(i,d){ const ac=trip().accom; const n=i+d; if(n<0||n>=ac.length) return; [ac[i],ac[n]]=[ac[n],ac[i]]; save(); renderAccom(); }
 window.removeAc = function(i){ if(!confirm('Șterge cazarea?')) return; trip().accom.splice(i,1); save(); renderAccom(); }
 
-function accomSelector(bi){
-  const t=trip(); if(!t) return '';
-  const b=t.transport[bi];
-  const accs=t.accom||[];
-  if(!accs.length) return '';
-  return `<div class="fg"><label>Asociat cu cazare (opțional)</label>
-    <select onchange="trip().transport[${bi}].linkedAccom=this.value;save()">
-      <option value="">— niciunul —</option>
-      ${accs.map(a=>`<option value="${a.id}"${b.linkedAccom===a.id?' selected':''}>${esc(a.hotel||'Cazare')} ${a.city?'('+a.city+')':''}</option>`).join('')}
-    </select>
-  </div>`;
-}
-
-// ═══════════════════════════
+// ═══════════════════════════════════════
 // OBJECTIVES
-// ═══════════════════════════
+// ═══════════════════════════════════════
 const OBJ_CATS=['Muzeu / Cultură','Natură / Plajă','Restaurant','Cafenea / Bar','Cumpărături','Activitate / Sport','Altul'];
 const OBJ_STATUSES=['💡 Idee','📋 Planificat','🔒 Rezervat','✅ Plătit'];
-const TRANSPORT_TO_OBJ=['Mers pe jos','Taxi / Uber','Bilet local','Bilet individual','Mașină proprie','Altul'];
 
 function renderObj(){
   const t=trip(); if(!t) return;
   if(!t.objectives) t.objectives=[];
   const el=document.getElementById('tpane-obj');
   const fCity=t._objFilterCity||'';
-  const fCat=t._objFilterCat||'';
   const cities=[...new Set((t.accom||[]).map(a=>a.city).filter(Boolean))];
   let objs=t.objectives;
   if(fCity) objs=objs.filter(o=>o.city===fCity);
-  if(fCat) objs=objs.filter(o=>o.category===fCat);
   let h=`<div class="stitle">📍 Obiective <span class="badge">${t.objectives.length}</span></div>`;
-  h+=`<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center">
-    <select style="width:auto" onchange="trip()._objFilterCity=this.value;save();renderObj()">
-      <option value="">🏙 Toate orașele</option>
-      ${cities.map(c=>`<option value="${c}"${c===fCity?' selected':''}>${c}</option>`).join('')}
-    </select>
-    <select style="width:auto" onchange="trip()._objFilterCat=this.value;save();renderObj()">
-      <option value="">📂 Toate categoriile</option>
-      ${OBJ_CATS.map(c=>`<option value="${c}"${c===fCat?' selected':''}>${c}</option>`).join('')}
-    </select>
-    <div class="flex1"></div>
-    <button class="btn btn-primary btn-sm" onclick="addObj()">+ Adaugă obiectiv</button>
-  </div>`;
+  if(cities.length>1){
+    h+=`<div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">
+      <button class="btn btn-sm ${!fCity?'btn-primary':'btn-ghost'}" onclick="trip()._objFilterCity='';save();renderObj()">Toate</button>
+      ${cities.map(c=>`<button class="btn btn-sm ${c===fCity?'btn-primary':'btn-ghost'}" onclick="trip()._objFilterCity='${c}';save();renderObj()">${c}</button>`).join('')}
+    </div>`;
+  }
   if(!objs.length){
-    h+=`<div class="empty"><div class="emo">📍</div><p>Niciun obiectiv adăugat.</p></div>`;
+    h+=`<div class="empty"><div class="emo">📍</div><p>Niciun obiectiv adăugat.<br>Apasă + pentru a adăuga.</p></div>`;
   } else {
     objs.forEach(o=>{ const ri=t.objectives.indexOf(o); h+=renderObjBlock(o,ri); });
   }
   el.innerHTML=h;
+  t.objectives.forEach(o=>{ if(o.lat&&o.lng) refreshMiniMap('minimap-obj-'+o.id,o.lat,o.lng,o.title); });
 }
 
 function renderObjBlock(o,i){
   const t=trip();
   const statusColors={'💡 Idee':'var(--text3)','📋 Planificat':'var(--accent2)','🔒 Rezervat':'var(--yellow)','✅ Plătit':'var(--green)'};
-  const sc=statusColors[o.status||'💡 Idee']||'var(--text3)';
+  const sc=statusColors[o.status||'💡 Idee'];
   let sub=[o.category,o.city,o.date?fmtDateRo(o.date):''].filter(Boolean).join(' · ');
-  if(o.timeStart) sub+=' '+o.timeStart+(o.timeEnd?'–'+o.timeEnd:'');
-  return `<div class="bcard ${o._col?'col':''}" id="ob-${o.id}">
+  if(o.timeStart) sub+=' '+o.timeStart;
+  return `<div class="bcard ${o._col?'col':''}">
     <div class="bcard-hdr" onclick="toggleObj(${i})">
       <span class="bcard-icon">📍</span>
-      <div class="flex1">
-        <div class="bcard-title">${esc(o.title||'Obiectiv fără titlu')} <span style="font-size:11px;color:${sc};margin-left:6px">${o.status||'💡 Idee'}</span></div>
+      <div style="flex:1;min-width:0">
+        <div class="bcard-title">${esc(o.title||'Obiectiv')} <span style="font-size:11px;color:${sc}">${o.status||'💡 Idee'}</span></div>
         ${sub?`<div class="bcard-sub">${esc(sub)}</div>`:''}
       </div>
       <div class="bcard-ctrl" onclick="event.stopPropagation()">
-        ${i>0?`<button class="mbtn" onclick="moveObj(${i},-1)">▲</button>`:''}
-        ${i<t.objectives.length-1?`<button class="mbtn" onclick="moveObj(${i},1)">▼</button>`:''}
-        <button class="mbtn" style="color:var(--red)" onclick="removeObj(${i})">✕</button>
+        <button class="mbtn" style="color:var(--red);font-size:18px" onclick="removeObj(${i})">✕</button>
       </div>
       <span class="chevron">${o._col?'▶':'▼'}</span>
     </div>
@@ -1278,82 +1223,72 @@ function bodyObj(o,i){
   const t=trip();
   const cities=[...new Set((t.accom||[]).map(a=>a.city).filter(Boolean))];
   return `
-  <div class="grid3">
-    <div class="fg"><label>Titlu</label><input type="text" value="${esc(o.title||'')}" oninput="trip().objectives[${i}].title=this.value;save()"></div>
+  <div class="fg"><label>Titlu</label><input type="text" value="${esc(o.title||'')}" oninput="trip().objectives[${i}].title=this.value;save()"></div>
+  <div class="grid2">
     <div class="fg"><label>Categorie</label>
       <select onchange="trip().objectives[${i}].category=this.value;save()">
         ${OBJ_CATS.map(c=>`<option value="${c}"${c===o.category?' selected':''}>${c}</option>`).join('')}
       </select>
-    </div>
-    <div class="fg"><label>Oraș</label>
-      ${cities.length?`<select onchange="if(this.value!=='__other__'){trip().objectives[${i}].city=this.value;save();}">
-        <option value="">— selectează —</option>
-        ${cities.map(c=>`<option value="${c}"${c===o.city?' selected':''}>${c}</option>`).join('')}
-        <option value="__other__">Alt oraș...</option>
-      </select>`:''}
-      <input type="text" value="${esc(o.city||'')}" placeholder="Introdu orașul" class="${cities.length?'mt4':''}" oninput="trip().objectives[${i}].city=this.value;save()">
     </div>
     <div class="fg"><label>Status</label>
       <select onchange="trip().objectives[${i}].status=this.value;save();renderObj()">
         ${OBJ_STATUSES.map(s=>`<option value="${s}"${s===(o.status||'💡 Idee')?' selected':''}>${s}</option>`).join('')}
       </select>
     </div>
-    <div class="fg"><label>Preț intrare</label>${priceRow(o.ticketPrice,o.ticketCur||'EUR',`trip().objectives[${i}].ticketPrice=this.value;save()`,`trip().objectives[${i}].ticketCur=this.value;save()`)}</div>
-    <div class="fg"><label>Link Maps / Rezervare</label>
-      <input type="url" value="${esc(o.link||'')}" oninput="trip().objectives[${i}].link=this.value;save()">
-      ${o.link?`<a href="${esc(o.link)}" target="_blank" class="btn btn-ghost btn-sm mt4">↗</a>`:''}
-    </div>
   </div>
-  <div class="grid3 mt8">
-    <div class="fg"><label>Data</label>${date3Html(o.date,`trip().objectives[${i}].date=iso;save()`)}</div>
+  <div class="fg"><label>Oraș</label>
+    ${cities.length?`<select onchange="if(this.value!=='__other__'){trip().objectives[${i}].city=this.value;save();}">
+      <option value="">— selectează —</option>
+      ${cities.map(c=>`<option value="${c}"${c===o.city?' selected':''}>${c}</option>`).join('')}
+      <option value="__other__">Alt oraș...</option>
+    </select><input type="text" value="${esc(o.city||'')}" placeholder="sau scrie direct" class="mt8" oninput="trip().objectives[${i}].city=this.value;save()">`
+    :`<input type="text" value="${esc(o.city||'')}" oninput="trip().objectives[${i}].city=this.value;save()">`}
+  </div>
+  <div class="fg"><label>Data</label>${date3Html(o.date,`trip().objectives[${i}].date=iso;save()`)}</div>
+  <div class="grid2">
     <div class="fg"><label>Ora start</label>${time24Html(o.timeStart,`trip().objectives[${i}].timeStart=v;save()`)}</div>
     <div class="fg"><label>Ora end</label>${time24Html(o.timeEnd,`trip().objectives[${i}].timeEnd=v;save()`)}</div>
-    <div class="fg"><label>Program</label><input type="text" value="${esc(o.schedule||'')}" placeholder="09:00–18:00" oninput="trip().objectives[${i}].schedule=this.value;save()"></div>
-    <div class="fg"><label>🔒 Oră fixă</label>
-      <label class="cb-label" style="margin-top:8px">
-        <input type="checkbox" ${o.locked?'checked':''} onchange="trip().objectives[${i}].locked=this.checked;save()"> Blocat în calendar
-      </label>
-    </div>
-    <div class="fg"><label>Durată deplasare (min)</label>
-      <input type="number" value="${o.travelMin||''}" min="0" oninput="trip().objectives[${i}].travelMin=this.value;save()">
-    </div>
   </div>
-  <div class="fg mt8"><label>Note</label><textarea oninput="trip().objectives[${i}].notes=this.value;save()">${esc(o.notes||'')}</textarea></div>
-  ${o.timeStart&&o.travelMin?`<div style="background:var(--yellow-dim);border:1px solid var(--yellow);border-radius:var(--rs);padding:8px 12px;font-size:13px;color:var(--yellow);margin-top:8px">
-    ⏰ Pleacă la: <strong>${subtractMinutes(o.timeStart,parseInt(o.travelMin))}</strong> (${o.travelMin} min deplasare)
+  <div class="grid2">
+    <div class="fg"><label>Preț intrare</label>${priceRow(o.ticketPrice,o.ticketCur||'EUR',`trip().objectives[${i}].ticketPrice=this.value;save()`,`trip().objectives[${i}].ticketCur=this.value;save()`)}</div>
+    <div class="fg"><label>Durată deplasare (min)</label><input type="number" value="${o.travelMin||''}" min="0" oninput="trip().objectives[${i}].travelMin=this.value;save()"></div>
+  </div>
+  <div class="fg"><label>Link Maps / Rezervare</label>
+    <input type="url" value="${esc(o.link||'')}" oninput="trip().objectives[${i}].link=this.value;save()">
+    ${o.link?`<a href="${esc(o.link)}" target="_blank" class="btn btn-ghost btn-sm mt8">↗ Deschide</a>`:''}
+  </div>
+  <label class="cb-label mt8">
+    <input type="checkbox" ${o.locked?'checked':''} onchange="trip().objectives[${i}].locked=this.checked;save()">
+    🔒 Oră fixă în calendar
+  </label>
+  ${o.timeStart&&o.travelMin?`<div style="background:var(--yellow-dim);border:1.5px solid var(--yellow);border-radius:var(--rs);padding:10px 14px;font-size:14px;color:var(--yellow);margin-top:10px">
+    ⏰ Pleacă la: <strong>${subtractMinutes(o.timeStart,parseInt(o.travelMin))}</strong>
   </div>`:''}
-  <div class="divlabel">📍 Locație</div>
-  <div class="grid3">
+  <div class="fg mt8"><label>Note</label><textarea oninput="trip().objectives[${i}].notes=this.value;save()">${esc(o.notes||'')}</textarea></div>
+  <div class="divlabel">📍 Locație pe hartă</div>
+  <div class="grid2">
     <div class="fg"><label>Latitudine</label>
-      <input type="number" step="any" value="${o.lat||''}" placeholder="ex: 48.8566"
+      <input type="number" step="any" value="${o.lat||''}" placeholder="48.8566"
         oninput="trip().objectives[${i}].lat=parseFloat(this.value)||'';save();refreshMiniMap('minimap-obj-${o.id}',trip().objectives[${i}].lat,trip().objectives[${i}].lng,trip().objectives[${i}].title)">
     </div>
     <div class="fg"><label>Longitudine</label>
-      <input type="number" step="any" value="${o.lng||''}" placeholder="ex: 2.3522"
+      <input type="number" step="any" value="${o.lng||''}" placeholder="2.3522"
         oninput="trip().objectives[${i}].lng=parseFloat(this.value)||'';save();refreshMiniMap('minimap-obj-${o.id}',trip().objectives[${i}].lat,trip().objectives[${i}].lng,trip().objectives[${i}].title)">
     </div>
-    <div class="fg"><label>Extrage din link Google Maps</label>
-      <input type="url" placeholder="Lipește link Google Maps..." 
-        oninput="extractCoordsFromUrl(this.value,${i})">
-    </div>
   </div>
-  ${o.lat&&o.lng?`<div id="minimap-obj-${o.id}" class="mini-map"></div>`:''}
-  `;
+  <div class="fg"><label>Sau lipește link Google Maps</label>
+    <input type="url" placeholder="https://maps.google.com/..." oninput="extractCoordsFromUrl(this.value,${i})">
+  </div>
+  ${o.lat&&o.lng?`<div id="minimap-obj-${o.id}" class="mini-map"></div>`:''}`;
 }
 
-window.addObj = function(prefill){
-  const t=trip(); if(!t) return;
-  if(!t.objectives) t.objectives=[];
-  t.objectives.push(Object.assign({id:uid(),title:'',category:OBJ_CATS[0],city:'',date:'',timeStart:'',timeEnd:'',schedule:'',locked:false,ticketPrice:'',ticketCur:'EUR',link:'',notes:'',status:'💡 Idee',travelMin:'',_col:false},prefill||{}));
-  save(); renderObj();
-}
+window.addObj = function(prefill){ const t=trip(); if(!t) return; if(!t.objectives) t.objectives=[]; t.objectives.push(Object.assign({id:uid(),title:'',category:OBJ_CATS[0],city:'',date:'',timeStart:'',timeEnd:'',locked:false,ticketPrice:'',ticketCur:'EUR',link:'',notes:'',status:'💡 Idee',travelMin:'',_col:false},prefill||{})); save(); renderObj(); }
 window.toggleObj = function(i){ trip().objectives[i]._col=!trip().objectives[i]._col; save(); renderObj(); }
-window.moveObj = function(i,d){ const ob=trip().objectives; const n=i+d; if(n<0||n>=ob.length) return; [ob[i],ob[n]]=[ob[n],ob[i]]; save(); renderObj(); }
-window.removeObj = function(i){ if(!confirm('Șterge obiectivul?')) return; trip().objectives.splice(i,1); save(); renderObj(); }
+window.removeObj = function(i){ if(!confirm('Șterge?')) return; trip().objectives.splice(i,1); save(); renderObj(); }
 
-// ═══════════════════════════
+// ═══════════════════════════════════════
 // IDEAS
-// ═══════════════════════════
+// ═══════════════════════════════════════
 const IDEA_CATS=['Transport','Cazare','Obiectiv','Restaurant / Cafenea','Activitate','Cumpărături','Altul'];
 const IDEA_STATUSES=['💡 Idee','⭐ Interesant','❌ Respins','✅ Convertit'];
 
@@ -1361,162 +1296,148 @@ function renderIdeas(){
   const t=trip(); if(!t) return;
   if(!t.ideas) t.ideas=[];
   const el=document.getElementById('tpane-ideas');
-  const active=t.ideas.filter(x=>x.status!=='❌ Respins'&&x.status!=='✅ Convertit');
-  let h=`<div class="stitle">💡 Propuneri <span class="badge">${active.length}</span></div>
-  <div style="margin-bottom:16px"><button class="btn btn-primary" onclick="addIdea()">+ Adaugă propunere</button></div>`;
+  let h=`<div class="stitle">💡 Propuneri <span class="badge">${t.ideas.filter(x=>x.status!=='❌ Respins'&&x.status!=='✅ Convertit').length}</span></div>`;
   if(!t.ideas.length){
-    h+=`<div class="empty"><div class="emo">💡</div><p>Nicio propunere adăugată.</p></div>`;
+    h+=`<div class="empty"><div class="emo">💡</div><p>Nicio propunere adăugată.<br>Apasă + pentru a adăuga.</p></div>`;
   } else {
-    t.ideas.forEach((idea,i)=>{ h+=renderIdeaCard(idea,i); });
+    t.ideas.forEach((idea,i)=>{
+      const sc={'💡 Idee':'var(--yellow)','⭐ Interesant':'var(--green)','❌ Respins':'var(--text3)'}[idea.status||'💡 Idee'];
+      const compact=idea.status==='❌ Respins'||idea.status==='✅ Convertit';
+      h+=`<div class="bcard ${compact||idea._col?'col':''}" style="${compact?'opacity:0.5':''}">
+        <div class="bcard-hdr" onclick="toggleIdea(${i})">
+          <span class="bcard-icon">💡</span>
+          <div style="flex:1;min-width:0">
+            <div class="bcard-title">${esc(idea.title||'Propunere')} <span style="font-size:11px;color:${sc}">${idea.status||'💡 Idee'}</span></div>
+            <div class="bcard-sub">${esc(idea.category||'')}</div>
+          </div>
+          <div class="bcard-ctrl" onclick="event.stopPropagation()">
+            ${idea.status!=='❌ Respins'?`<button class="btn btn-success btn-sm" onclick="convertIdeaToObj(${i})">→</button>`:''}
+            <button class="mbtn" style="color:var(--red);font-size:18px" onclick="removeIdea(${i})">✕</button>
+          </div>
+          <span class="chevron">${idea._col?'▶':'▼'}</span>
+        </div>
+        <div class="bcard-body">
+          <div class="fg"><label>Titlu</label><input type="text" value="${esc(idea.title||'')}" oninput="trip().ideas[${i}].title=this.value;save()"></div>
+          <div class="grid2">
+            <div class="fg"><label>Categorie</label>
+              <select onchange="trip().ideas[${i}].category=this.value;save()">
+                ${IDEA_CATS.map(c=>`<option value="${c}"${c===idea.category?' selected':''}>${c}</option>`).join('')}
+              </select>
+            </div>
+            <div class="fg"><label>Status</label>
+              <select onchange="trip().ideas[${i}].status=this.value;save();renderIdeas()">
+                ${IDEA_STATUSES.map(s=>`<option value="${s}"${s===(idea.status||'💡 Idee')?' selected':''}>${s}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          <div class="fg"><label>Link</label>
+            <input type="url" value="${esc(idea.link||'')}" oninput="trip().ideas[${i}].link=this.value;save()">
+            ${idea.link?`<a href="${esc(idea.link)}" target="_blank" class="btn btn-ghost btn-sm mt8">↗</a>`:''}
+          </div>
+          <div class="fg"><label>Comentariu</label><textarea oninput="trip().ideas[${i}].notes=this.value;save()">${esc(idea.notes||'')}</textarea></div>
+        </div>
+      </div>`;
+    });
   }
   el.innerHTML=h;
 }
-
-function renderIdeaCard(idea,i){
-  const statusColors={'💡 Idee':'var(--yellow)','⭐ Interesant':'var(--green)','❌ Respins':'var(--text3)'};
-  const sc=statusColors[idea.status||'💡 Idee'];
-  const compact=idea.status==='❌ Respins'||idea.status==='✅ Convertit';
-  return `<div class="bcard ${compact||idea._col?'col':''}" id="idea-${idea.id}" style="${compact?'opacity:0.5':''}">
-    <div class="bcard-hdr" onclick="toggleIdea(${i})">
-      <span class="bcard-icon">💡</span>
-      <div class="flex1">
-        <div class="bcard-title">${esc(idea.title||'Propunere')} <span style="font-size:11px;color:${sc};margin-left:6px">${idea.status||'💡 Idee'}</span></div>
-        <div class="bcard-sub">${esc(idea.category||'')}</div>
-      </div>
-      <div class="bcard-ctrl" onclick="event.stopPropagation()">
-        ${idea.status!=='❌ Respins'?`<button class="btn btn-success btn-sm" onclick="convertIdeaToObj(${i})">→ Obiectiv</button>`:''}
-        <button class="mbtn" style="color:var(--red)" onclick="removeIdea(${i})">✕</button>
-      </div>
-      <span class="chevron">${idea._col?'▶':'▼'}</span>
-    </div>
-    <div class="bcard-body">
-      <div class="grid2">
-        <div class="fg"><label>Titlu</label><input type="text" value="${esc(idea.title||'')}" oninput="trip().ideas[${i}].title=this.value;save()"></div>
-        <div class="fg"><label>Categorie</label>
-          <select onchange="trip().ideas[${i}].category=this.value;save()">
-            ${IDEA_CATS.map(c=>`<option value="${c}"${c===idea.category?' selected':''}>${c}</option>`).join('')}
-          </select>
-        </div>
-        <div class="fg"><label>Status</label>
-          <select onchange="trip().ideas[${i}].status=this.value;save();renderIdeas()">
-            ${IDEA_STATUSES.map(s=>`<option value="${s}"${s===(idea.status||'💡 Idee')?' selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        <div class="fg"><label>Link</label>
-          <input type="url" value="${esc(idea.link||'')}" oninput="trip().ideas[${i}].link=this.value;save()">
-          ${idea.link?`<a href="${esc(idea.link)}" target="_blank" class="btn btn-ghost btn-sm mt4">↗</a>`:''}
-        </div>
-      </div>
-      <div class="fg"><label>Comentariu</label><textarea oninput="trip().ideas[${i}].notes=this.value;save()">${esc(idea.notes||'')}</textarea></div>
-    </div>
-  </div>`;
-}
-
-window.addIdea = function(){
-  const t=trip(); if(!t) return;
-  if(!t.ideas) t.ideas=[];
-  t.ideas.push({id:uid(),title:'',category:IDEA_CATS[0],status:'💡 Idee',link:'',notes:'',_col:false});
-  save(); renderIdeas();
-}
+window.addIdea = function(){ const t=trip(); if(!t) return; if(!t.ideas) t.ideas=[]; t.ideas.push({id:uid(),title:'',category:IDEA_CATS[0],status:'💡 Idee',link:'',notes:'',_col:false}); save(); renderIdeas(); }
 window.toggleIdea = function(i){ trip().ideas[i]._col=!trip().ideas[i]._col; save(); renderIdeas(); }
-window.removeIdea = function(i){ if(!confirm('Șterge propunerea?')) return; trip().ideas.splice(i,1); save(); renderIdeas(); }
-window.convertIdeaToObj = function(i){
-  const idea=trip().ideas[i];
-  addObj({title:idea.title||'',link:idea.link||'',notes:idea.notes||''});
-  idea.status='✅ Convertit'; save(); renderIdeas();
-  alert('Convertit! Mergi la tab-ul 📍 Obiective.');
-}
+window.removeIdea = function(i){ if(!confirm('Șterge?')) return; trip().ideas.splice(i,1); save(); renderIdeas(); }
+window.convertIdeaToObj = function(i){ const idea=trip().ideas[i]; addObj({title:idea.title||'',link:idea.link||'',notes:idea.notes||''}); idea.status='✅ Convertit'; save(); renderIdeas(); alert('Convertit! Mergi la 📍 Obiective.'); }
 
-// ═══════════════════════════
-// TIME 24H
-// ═══════════════════════════
-function time24Html(val, onChangeExpr){
-  const parts=(val||'').split(':');
-  const hh=parts[0]||''; const mm=parts[1]||'';
-  return `<div style="display:flex;gap:4px;align-items:center">
-    <input type="number" min="0" max="23" value="${hh}" placeholder="HH" style="width:52px;text-align:center"
-      oninput="(function(){var p=this.parentElement.querySelectorAll('input');var v=String(p[0].value).padStart(2,'0')+':'+String(p[1].value).padStart(2,'0');${onChangeExpr}}).call(this)">
-    <span style="color:var(--text3);font-weight:700">:</span>
-    <input type="number" min="0" max="59" value="${mm}" placeholder="MM" style="width:52px;text-align:center"
-      oninput="(function(){var p=this.parentElement.querySelectorAll('input');var v=String(p[0].value).padStart(2,'0')+':'+String(p[1].value).padStart(2,'0');${onChangeExpr}}).call(this)">
-  </div>`;
-}
+// ═══════════════════════════════════════
+// TODO
+// ═══════════════════════════════════════
+const TODO_CATS=['Documente','Transport','Cazare','Activități','Cumpărături','Altele'];
 
-// ═══════════════════════════
+function renderTodo(){
+  const t=trip(); if(!t) return;
+  if(!t.todo) t.todo={};
+  TODO_CATS.forEach(c=>{ if(!t.todo[c]) t.todo[c]=[]; });
+  const el=document.getElementById('tpane-todo');
+  const total=Object.values(t.todo).flat().length;
+  const done=Object.values(t.todo).flat().filter(x=>x.done).length;
+  let h=`<div class="stitle">✅ To-Do <span class="badge">${done}/${total}</span></div>`;
+  TODO_CATS.forEach(cat=>{
+    const items=t.todo[cat]||[];
+    h+=`<div style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:14px;font-weight:700;color:var(--text2)">${cat}</span>
+        <span class="text-xs text-muted">${items.filter(x=>x.done).length}/${items.length}</span>
+        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="addTodo('${cat}')">+ Adaugă</button>
+      </div>`;
+    items.forEach((it,ii)=>{
+      h+=`<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:8px;${it.done?'opacity:0.5':''}">
+        <div onclick="toggleTodo('${cat}',${ii})" style="width:22px;height:22px;border:2px solid ${it.done?'var(--green)':'var(--border2)'};border-radius:6px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${it.done?'var(--green)':'transparent'};flex-shrink:0;font-size:14px;color:#fff">${it.done?'✓':''}</div>
+        <input type="text" value="${esc(it.text)}" style="flex:1;background:transparent;border:none;border-radius:0;padding:0;font-size:15px;color:var(--text);${it.done?'text-decoration:line-through':''}" oninput="trip().todo['${cat}'][${ii}].text=this.value;save()">
+        <button class="mbtn" style="color:var(--red);font-size:18px" onclick="removeTodo('${cat}',${ii})">✕</button>
+      </div>`;
+    });
+    h+=`</div>`;
+  });
+  el.innerHTML=h;
+}
+window.addTodo = function(cat){ const t=trip(); if(!t) return; if(!t.todo[cat]) t.todo[cat]=[]; t.todo[cat].push({id:uid(),text:'',done:false}); save(); renderTodo(); }
+window.toggleTodo = function(cat,i){ trip().todo[cat][i].done=!trip().todo[cat][i].done; save(); renderTodo(); }
+window.removeTodo = function(cat,i){ trip().todo[cat].splice(i,1); save(); renderTodo(); }
+
+// ═══════════════════════════════════════
 // BUDGET
-// ═══════════════════════════
+// ═══════════════════════════════════════
 function renderBudget(){
   const t=trip(); if(!t) return;
   const el=document.getElementById('tpane-budget');
   const items=[];
-  (t.transport||[]).forEach(tr=>{
-    if(tr.ttype==='local_tickets'){
-      (tr.tickets||[]).forEach(tk=>{ const v=(parseFloat(tk.price)||0)*(parseInt(tk.count)||1); if(v>0) items.push({label:`🎫 ${tk.period||'Bilet'}`,amount:v,cur:tk.cur||'EUR',cat:'Transport'}); });
-    } else {
-      const v=parseFloat(tr.totalPrice)||0;
-      if(v>0) items.push({label:`${ttLabel(tr.ttype)} ${tr.from?tr.from+'→'+tr.to:''}`.trim(),amount:v,cur:tr.totalCur||'EUR',cat:'Transport'});
-    }
-  });
-  (t.accom||[]).forEach(a=>{
-    const nights=calcNights(a.checkin,a.checkout);
-    let v=parseFloat(a.totalPrice)||0;
-    if(!v&&nights&&a.pricePN) v=nights*(parseFloat(a.pricePN)||0);
-    if(v>0) items.push({label:`🏨 ${a.hotel||'Cazare'}`,amount:v,cur:a.totalCur||a.pricePNCur||'EUR',cat:'Cazare'});
-  });
-  (t.objectives||[]).forEach(o=>{
-    const v=parseFloat(o.ticketPrice)||0;
-    if(v>0) items.push({label:`📍 ${o.title||'Obiectiv'}`,amount:v,cur:o.ticketCur||'EUR',cat:'Activități'});
-  });
+  (t.transport||[]).forEach(tr=>{ if(tr.ttype==='local_tickets'){ (tr.tickets||[]).forEach(tk=>{ const v=(parseFloat(tk.price)||0)*(parseInt(tk.count)||1); if(v>0) items.push({label:`🎫 ${tk.period||'Bilet'}`,amount:v,cur:tk.cur||'EUR',cat:'Transport'}); }); } else { const v=parseFloat(tr.totalPrice)||0; if(v>0) items.push({label:`${ttLabel(tr.ttype)} ${tr.from?tr.from+'→'+tr.to:''}`.trim(),amount:v,cur:tr.totalCur||'EUR',cat:'Transport'}); } });
+  (t.accom||[]).forEach(a=>{ const n=calcNights(a.checkin,a.checkout); let v=parseFloat(a.totalPrice)||0; if(!v&&n&&a.pricePN) v=n*(parseFloat(a.pricePN)||0); if(v>0) items.push({label:`🏨 ${a.hotel||'Cazare'}`,amount:v,cur:a.totalCur||a.pricePNCur||'EUR',cat:'Cazare'}); });
+  (t.objectives||[]).forEach(o=>{ const v=parseFloat(o.ticketPrice)||0; if(v>0) items.push({label:`📍 ${o.title||'Obiectiv'}`,amount:v,cur:o.ticketCur||'EUR',cat:'Activități'}); });
   if(!t.budgetExtras) t.budgetExtras=[];
   (t.budgetExtras||[]).forEach(ex=>{ const v=parseFloat(ex.amount)||0; if(v>0) items.push({label:ex.label||'Extra',amount:v,cur:ex.cur||'EUR',cat:'Extra'}); });
-
   const total=items.reduce((s,x)=>s+x.amount,0);
   const cats=['Transport','Cazare','Activități','Extra'];
   let h=`<div class="stitle">💰 Buget estimat</div>`;
-  if(!items.length){
-    h+=`<div class="empty"><div class="emo">💸</div><p>Completează prețurile în Transport, Cazare și Obiective.</p></div>`;
-  } else {
+  if(!items.length){ h+=`<div class="empty"><div class="emo">💸</div><p>Completează prețurile în Transport, Cazare și Obiective.</p></div>`; }
+  else {
+    h+=`<div style="background:var(--green-dim);border:1.5px solid var(--green);border-radius:var(--r);padding:18px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <span style="font-weight:700;font-size:16px">TOTAL ESTIMAT</span>
+      <span style="font-weight:700;font-size:20px;color:var(--green)">${total.toFixed(2)}</span>
+    </div>`;
     cats.forEach(cat=>{
       const ci=items.filter(x=>x.cat===cat); if(!ci.length) return;
       const catTotal=ci.reduce((s,x)=>s+x.amount,0);
       const pct=total>0?Math.round(catTotal/total*100):0;
       h+=`<div style="margin-bottom:20px">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <span style="font-size:13px;font-weight:600">${cat}</span>
-          <div style="flex:1;height:6px;background:var(--bg4);border-radius:3px;overflow:hidden">
-            <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px"></div>
-          </div>
-          <span style="font-size:12px;color:var(--text3)">${pct}%</span>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <span style="font-size:14px;font-weight:700">${cat}</span>
+          <div style="flex:1;height:8px;background:var(--bg4);border-radius:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:4px"></div></div>
+          <span class="text-sm text-muted">${pct}%</span>
         </div>`;
-      ci.forEach(it=>{ h+=`<div style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:4px;font-size:13px">
-        <span style="color:var(--text2)">${esc(it.label)}</span>
-        <span style="font-weight:600;color:var(--accent2)">${it.amount.toFixed(2)} ${it.cur}</span>
+      ci.forEach(it=>{ h+=`<div style="display:flex;justify-content:space-between;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px">
+        <span style="color:var(--text2);font-size:14px">${esc(it.label)}</span>
+        <span style="font-weight:700;color:var(--accent2)">${it.amount.toFixed(2)} ${it.cur}</span>
       </div>`; });
-      h+=`<div style="text-align:right;font-size:12px;color:var(--text3)">Subtotal: ${catTotal.toFixed(2)}</div></div>`;
+      h+=`<div style="text-align:right" class="text-xs text-muted">Subtotal: ${catTotal.toFixed(2)}</div></div>`;
     });
-    h+=`<div style="background:var(--green-dim);border:1px solid var(--green);border-radius:var(--r);padding:16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <span style="font-weight:700;font-size:15px">TOTAL ESTIMAT</span>
-      <span style="font-weight:700;font-size:18px;color:var(--green)">${total.toFixed(2)}</span>
-    </div>`;
   }
   h+=`<div class="divlabel">Cheltuieli extra</div>`;
   (t.budgetExtras||[]).forEach((ex,ei)=>{
-    h+=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+    h+=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
       <input type="text" value="${esc(ex.label)}" placeholder="Descriere" style="flex:2" onchange="trip().budgetExtras[${ei}].label=this.value;save();renderBudget()">
       <input type="number" value="${ex.amount||''}" placeholder="0.00" step="0.01" style="width:90px" onchange="trip().budgetExtras[${ei}].amount=this.value;save();renderBudget()">
-      <select style="width:76px" onchange="trip().budgetExtras[${ei}].cur=this.value;save()">
+      <select style="width:80px" onchange="trip().budgetExtras[${ei}].cur=this.value;save()">
         ${CURR.map(c=>`<option value="${c}"${c===(ex.cur||'EUR')?' selected':''}>${c}</option>`).join('')}
       </select>
-      <button class="mbtn" style="color:var(--red)" onclick="trip().budgetExtras.splice(${ei},1);save();renderBudget()">✕</button>
+      <button class="mbtn" style="color:var(--red);font-size:18px" onclick="trip().budgetExtras.splice(${ei},1);save();renderBudget()">✕</button>
     </div>`;
   });
-  h+=`<button class="btn btn-ghost btn-sm mt8" onclick="trip().budgetExtras=trip().budgetExtras||[];trip().budgetExtras.push({id:uid(),label:'',amount:'',cur:'EUR'});save();renderBudget()">+ Adaugă cheltuială</button>`;
+  h+=`<button class="btn btn-ghost mt8" onclick="trip().budgetExtras=trip().budgetExtras||[];trip().budgetExtras.push({id:uid(),label:'',amount:'',cur:'EUR'});save();renderBudget()">+ Adaugă cheltuială</button>`;
   el.innerHTML=h;
 }
 
-// ═══════════════════════════
+// ═══════════════════════════════════════
 // CALENDAR
-// ═══════════════════════════
+// ═══════════════════════════════════════
 function datesBetween(start,end){
   if(!start||!end) return [];
   const days=[]; let cur=new Date(start+'T12:00:00');
@@ -1531,85 +1452,44 @@ const MONTH_NAMES=['ian','feb','mar','apr','mai','iun','iul','aug','sep','oct','
 function renderCalendar(){
   const t=trip(); if(!t) return;
   const el=document.getElementById('tpane-calendar');
-  if(!t.start||!t.end){
-    el.innerHTML=`<div class="empty"><div class="emo">📅</div><p>Adaugă datele excursiei.</p></div>`;
-    return;
-  }
+  if(!t.start||!t.end){ el.innerHTML=`<div class="empty"><div class="emo">📅</div><p>Adaugă datele excursiei.</p></div>`; return; }
   const days=datesBetween(t.start,t.end);
   let h=`<div class="stitle">📅 Calendar <span class="badge">${days.length} zile</span></div>`;
-
   days.forEach((iso,di)=>{
     const d=new Date(iso+'T12:00:00');
     const dayName=DAY_NAMES[d.getDay()];
     const dayLabel=`${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
     const events=[];
-
-    (t.transport||[]).forEach(tr=>{
-      if(tr.ttype==='local_tickets') return;
-      if(tr.depDate===iso&&tr.depTime){
-        const startMin=timeToMin(tr.depTime);
-        const endMin=(tr.arrDate===iso&&tr.arrTime)?timeToMin(tr.arrTime):startMin+60;
-        events.push({startMin,endMin,label:`${ttLabel(tr.ttype)} ${tr.from||''}→${tr.to||''}`.trim(),cls:'cal-ev-transport',locked:tr.locked,icon:'🚌'});
-      }
-    });
-
-    (t.accom||[]).forEach(a=>{
-      if(a.checkin===iso) events.push({startMin:14*60,endMin:15*60,label:`Check-in: ${a.hotel||'Cazare'}`,cls:'cal-ev-accom',icon:'🏨'});
-      if(a.checkout===iso) events.push({startMin:10*60,endMin:10*60+30,label:`Check-out: ${a.hotel||''}`,cls:'cal-ev-accom',locked:true,icon:'🔑'});
-    });
-
-    (t.objectives||[]).forEach(o=>{
-      if(o.date!==iso||!o.timeStart) return;
-      const isMeal=o.category==='Restaurant'||o.category==='Cafenea / Bar';
-      const startMin=timeToMin(o.timeStart);
-      const endMin=o.timeEnd?timeToMin(o.timeEnd):startMin+60;
-      const depNote=o.travelMin?` ⏰ plecare la ${subtractMinutes(o.timeStart,parseInt(o.travelMin))}`:'' ;
-      events.push({startMin,endMin,label:`${o.title||'Obiectiv'}${depNote}`,cls:isMeal?'cal-ev-meal':'cal-ev-obj',locked:o.locked,icon:isMeal?'🍽':'📍'});
-    });
-
+    (t.transport||[]).forEach(tr=>{ if(tr.ttype==='local_tickets') return; if(tr.depDate===iso&&tr.depTime){ const sm=timeToMin(tr.depTime); const em=(tr.arrDate===iso&&tr.arrTime)?timeToMin(tr.arrTime):sm+60; events.push({startMin:sm,endMin:em,label:`${ttLabel(tr.ttype)} ${tr.from||''}→${tr.to||''}`.trim(),cls:'cal-ev-transport',locked:tr.locked,icon:'🚌'}); } });
+    (t.accom||[]).forEach(a=>{ if(a.checkin===iso) events.push({startMin:14*60,endMin:15*60,label:`Check-in: ${a.hotel||''}`,cls:'cal-ev-accom',icon:'🏨'}); if(a.checkout===iso) events.push({startMin:10*60,endMin:10*60+30,label:`Check-out: ${a.hotel||''}`,cls:'cal-ev-accom',locked:true,icon:'🔑'}); });
+    (t.objectives||[]).forEach(o=>{ if(o.date!==iso||!o.timeStart) return; const isMeal=o.category==='Restaurant'||o.category==='Cafenea / Bar'; const sm=timeToMin(o.timeStart); const em=o.timeEnd?timeToMin(o.timeEnd):sm+60; const dep=o.travelMin?` ⏰ plecare la ${subtractMinutes(o.timeStart,parseInt(o.travelMin))}`:''; events.push({startMin:sm,endMin:em,label:`${o.title||'Obiectiv'}${dep}`,cls:isMeal?'cal-ev-meal':'cal-ev-obj',locked:o.locked,icon:isMeal?'🍽':'📍'}); });
     events.sort((a,b)=>a.startMin-b.startMin);
-    let busyMin=0;
-    events.forEach(ev=>{ const s=Math.max(ev.startMin,480),e=Math.min(ev.endMin,1380); busyMin+=Math.max(0,e-s); });
+    let busyMin=0; events.forEach(ev=>{ const s=Math.max(ev.startMin,480),e=Math.min(ev.endMin,1380); busyMin+=Math.max(0,e-s); });
     const occupancy=Math.min(100,Math.round(busyMin/900*100));
-
-    const stayingAccom=(t.accom||[]).filter(a=>{ if(!a.checkin||!a.checkout) return false; return iso>a.checkin&&iso<a.checkout; });
-
+    const stayingAccom=(t.accom||[]).filter(a=>a.checkin&&a.checkout&&iso>a.checkin&&iso<a.checkout);
     h+=`<div class="cal-day">
       <div class="cal-day-hdr">
         <div class="cal-day-num">${di+1}</div>
-        <div>
+        <div style="flex:1">
           <div class="cal-day-label">${dayName}, ${dayLabel}</div>
           <div class="cal-day-date">${events.length} evenimente</div>
         </div>
-        <div class="flex1"></div>
-        <div style="display:flex;align-items:center;gap:8px;min-width:140px">
+        <div style="display:flex;align-items:center;gap:6px;min-width:100px">
           <div class="cal-occupy"><div class="cal-occupy-fill" style="width:${occupancy}%"></div></div>
-          <span style="font-size:11px;color:var(--text3)">${occupancy}% ocupat</span>
+          <span class="text-xs text-muted">${occupancy}%</span>
         </div>
       </div>`;
-
-    stayingAccom.forEach(a=>{ h+=`<div style="background:var(--green-dim);border-bottom:1px solid var(--green);padding:5px 16px;font-size:12px;color:var(--green)">🏨 Cazat la: <strong>${esc(a.hotel||'')}</strong>${a.city?' — '+esc(a.city):''}</div>`; });
-
+    stayingAccom.forEach(a=>{ h+=`<div style="background:var(--green-dim);border-bottom:1px solid var(--green);padding:6px 14px;font-size:13px;color:var(--green)">🏨 ${esc(a.hotel||'')}${a.city?' — '+esc(a.city):''}</div>`; });
     h+=`<div class="cal-timeline">`;
-    if(!events.length){
-      h+=`<div style="padding:8px 0;font-size:12px;color:var(--text3)">Niciun eveniment planificat.</div>`;
-    } else {
+    if(!events.length){ h+=`<div class="text-sm text-muted" style="padding:10px 0">Niciun eveniment planificat.</div>`; }
+    else {
       for(let hour=8;hour<=22;hour++){
         const slotMin=hour*60;
         const starting=events.filter(ev=>ev.startMin>=slotMin&&ev.startMin<slotMin+60);
         const spanning=events.filter(ev=>ev.startMin<slotMin&&ev.endMin>slotMin);
-        h+=`<div class="cal-slot">
-          <div class="cal-slot-lbl">${String(hour).padStart(2,'0')}:00</div>
-          <div class="cal-slot-events">`;
+        h+=`<div class="cal-slot"><div class="cal-slot-lbl">${String(hour).padStart(2,'0')}:00</div><div class="cal-slot-events">`;
         spanning.forEach(ev=>{ h+=`<div class="cal-ev ${ev.cls}" style="opacity:0.5;font-size:11px"><span>${ev.icon}</span><span>↕ ${esc(ev.label)}</span></div>`; });
-        starting.forEach(ev=>{
-          const hh=Math.floor(ev.startMin/60),mm=ev.startMin%60;
-          const eh=Math.floor(ev.endMin/60),em=ev.endMin%60;
-          h+=`<div class="cal-ev ${ev.cls}${ev.locked?' cal-locked':''}">
-            <span>${ev.icon}</span>
-            <span><strong>${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}–${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}</strong> ${esc(ev.label)}</span>
-          </div>`;
-        });
+        starting.forEach(ev=>{ const hh=Math.floor(ev.startMin/60),mm=ev.startMin%60,eh=Math.floor(ev.endMin/60),em=ev.endMin%60; h+=`<div class="cal-ev ${ev.cls}${ev.locked?' cal-locked':''}"><span>${ev.icon}</span><span><strong>${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}–${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}</strong> ${esc(ev.label)}</span></div>`; });
         h+=`</div></div>`;
       }
     }
@@ -1618,45 +1498,68 @@ function renderCalendar(){
   el.innerHTML=h;
 }
 
-// ═══════════════════════════
-// TODO
-// ═══════════════════════════
-const TODO_CATS=['Documente','Transport','Cazare','Activități','Cumpărături','Altele'];
+// ═══════════════════════════════════════
+// MAPS
+// ═══════════════════════════════════════
+const miniMaps={};
+let globalMap=null;
 
-function renderTodo(){
-  const t=trip(); if(!t) return;
-  if(!t.todo) t.todo={};
-  TODO_CATS.forEach(c=>{ if(!t.todo[c]) t.todo[c]=[]; });
-  const el=document.getElementById('tpane-todo');
-  const total=Object.values(t.todo).flat().length;
-  const done=Object.values(t.todo).flat().filter(x=>x.done).length;
-  let h=`<div class="stitle">✅ To-Do <span class="badge">${done}/${total} bifate</span></div>`;
-  TODO_CATS.forEach(cat=>{
-    const items=t.todo[cat]||[];
-    h+=`<div style="margin-bottom:20px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <span style="font-size:13px;font-weight:600;color:var(--text2)">${cat}</span>
-        <span style="font-size:11px;color:var(--text3)">${items.filter(x=>x.done).length}/${items.length}</span>
-        <button class="btn btn-ghost btn-sm" onclick="addTodo('${cat}')">+ Adaugă</button>
-      </div>`;
-    items.forEach((it,ii)=>{
-      h+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;${it.done?'opacity:0.5':''}">
-        <div onclick="toggleTodo('${cat}',${ii})" style="width:18px;height:18px;border:2px solid ${it.done?'var(--green)':'var(--border2)'};border-radius:4px;cursor:pointer;display:flex;align-items:center;justify-content:center;background:${it.done?'var(--green)':'transparent'};flex-shrink:0;font-size:11px;color:#fff">${it.done?'✓':''}</div>
-        <input type="text" value="${esc(it.text)}" style="flex:1;background:transparent;border:none;border-radius:0;padding:0;font-size:13px;color:var(--text);${it.done?'text-decoration:line-through':''}" oninput="trip().todo['${cat}'][${ii}].text=this.value;save()">
-        <button class="mbtn" style="color:var(--red)" onclick="removeTodo('${cat}',${ii})">✕</button>
-      </div>`;
-    });
-    h+=`</div>`;
-  });
-  el.innerHTML=h;
+function parseCoordsFromGMaps(url){
+  const patterns=[/@(-?\d+\.?\d*),(-?\d+\.?\d*)/,/[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/,/[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/,/\/(-?\d+\.?\d*),(-?\d+\.?\d*)/];
+  for(const pat of patterns){ const m=url.match(pat); if(m) return {lat:parseFloat(m[1]),lng:parseFloat(m[2])}; }
+  return null;
 }
-window.addTodo = function(cat){ const t=trip(); if(!t) return; if(!t.todo[cat]) t.todo[cat]=[]; t.todo[cat].push({id:uid(),text:'',done:false}); save(); renderTodo(); }
-window.toggleTodo = function(cat,i){ trip().todo[cat][i].done=!trip().todo[cat][i].done; save(); renderTodo(); }
-window.removeTodo = function(cat,i){ trip().todo[cat].splice(i,1); save(); renderTodo(); }
 
-// ═══════════════════════════
+window.extractCoordsFromUrl = function(url,objIdx){ if(!url) return; const c=parseCoordsFromGMaps(url); if(c){ trip().objectives[objIdx].lat=c.lat; trip().objectives[objIdx].lng=c.lng; save(); renderObj(); } }
+window.extractCoordsFromUrlAccom = function(url,acIdx){ if(!url) return; const c=parseCoordsFromGMaps(url); if(c){ trip().accom[acIdx].lat=c.lat; trip().accom[acIdx].lng=c.lng; save(); renderAccom(); } }
+
+window.refreshMiniMap = function(containerId,lat,lng,title){
+  if(!lat||!lng) return;
+  setTimeout(()=>{
+    const el=document.getElementById(containerId); if(!el) return;
+    if(miniMaps[containerId]){ miniMaps[containerId].setView([lat,lng],15); return; }
+    const map=L.map(containerId,{zoomControl:true}).setView([lat,lng],15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(map);
+    const icon=L.divIcon({className:'',html:`<div style="background:#4f8ef7;border:2px solid white;border-radius:50%;width:14px;height:14px;box-shadow:0 2px 4px rgba(0,0,0,0.4)"></div>`,iconSize:[14,14],iconAnchor:[7,7]});
+    L.marker([lat,lng],{icon}).addTo(map).bindPopup(`<strong>${title||'Locație'}</strong>`);
+    miniMaps[containerId]=map;
+  },100);
+}
+
+function renderMapTab(){
+  const t=trip(); if(!t) return;
+  const el=document.getElementById('tpane-map');
+  const objs=(t.objectives||[]).filter(o=>o.lat&&o.lng);
+  const accoms=(t.accom||[]).filter(a=>a.lat&&a.lng);
+  const total=objs.length+accoms.length;
+  if(!total){
+    el.style.padding='16px';
+    el.innerHTML=`<div class="empty"><div class="emo">🗺</div><p>Adaugă coordonate la obiective și cazări pentru a le vedea pe hartă.<br><br>Mergi la 📍 Obiective sau 🏨 Cazare și completează câmpurile Latitudine/Longitudine sau lipește un link Google Maps.</p></div>`;
+    return;
+  }
+  el.innerHTML=`<div id="global-map" style="width:100%;height:100%;"></div>`;
+  setTimeout(()=>{
+    if(globalMap){ globalMap.remove(); globalMap=null; }
+    const allPoints=[...objs.map(o=>({lat:o.lat,lng:o.lng,title:o.title||'Obiectiv',type:'obj',date:o.date,timeStart:o.timeStart})),...accoms.map(a=>({lat:a.lat,lng:a.lng,title:a.hotel||'Cazare',type:'accom'}))];
+    const center=allPoints.length===1?[allPoints[0].lat,allPoints[0].lng]:[allPoints.reduce((s,p)=>s+p.lat,0)/allPoints.length,allPoints.reduce((s,p)=>s+p.lng,0)/allPoints.length];
+    globalMap=L.map('global-map').setView(center,13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(globalMap);
+    let objIdx=0;
+    allPoints.forEach(p=>{
+      const color=p.type==='accom'?'#34d399':'#fb923c';
+      const label=p.type==='obj'?String(++objIdx):'H';
+      const icon=L.divIcon({className:'',html:`<div style="background:${color};border:2px solid white;border-radius:50%;width:28px;height:28px;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700">${label}</div>`,iconSize:[28,28],iconAnchor:[14,14]});
+      L.marker([p.lat,p.lng],{icon}).addTo(globalMap).bindPopup(`<strong>${p.title}</strong>${p.date?'<br>'+p.date+' '+(p.timeStart||''):''}`);
+    });
+    const sortedObjs=[...objs].sort((a,b)=>{ if(a.date&&b.date) return a.date.localeCompare(b.date); return 0; });
+    if(sortedObjs.length>1) L.polyline(sortedObjs.map(o=>[o.lat,o.lng]),{color:'#4f8ef7',weight:2,opacity:0.7,dashArray:'8,6'}).addTo(globalMap);
+    if(allPoints.length>1) globalMap.fitBounds(L.latLngBounds(allPoints.map(p=>[p.lat,p.lng])),{padding:[40,40]});
+  },200);
+}
+
+// ═══════════════════════════════════════
 // ASSISTANT
-// ═══════════════════════════
+// ═══════════════════════════════════════
 let chatHistory=[];
 
 function renderAssistant(){
@@ -1664,7 +1567,7 @@ function renderAssistant(){
   const el=document.getElementById('tpane-assistant');
   const apiKey=localStorage.getItem('tp_apikey')||'';
   let h=`<div class="stitle">🤖 Asistent AI</div>
-  <div class="bcard" style="margin-bottom:16px"><div class="bcard-body">
+  <div class="bcard" style="margin-bottom:14px"><div class="bcard-body">
     <div class="fg"><label>API Key Anthropic</label>
       <div style="display:flex;gap:8px">
         <input type="password" id="ai-key" value="${esc(apiKey)}" placeholder="sk-ant-api03-..." style="flex:1" oninput="localStorage.setItem('tp_apikey',this.value)">
@@ -1673,17 +1576,14 @@ function renderAssistant(){
     </div>
   </div></div>
   <div class="bcard"><div class="bcard-body">
-    <div style="font-weight:600;margin-bottom:8px">💬 Chat ${apiKey?'<span style=color:var(--green)>● activ</span>':'<span style=color:var(--text3)>● fără API key</span>'}</div>
+    <div style="font-weight:600;margin-bottom:10px">💬 Chat ${apiKey?'<span style=color:var(--green)>● activ</span>':'<span style=color:var(--text3)>● fără API key</span>'}</div>
     <div class="chat-wrap" id="chat-wrap">`;
-  if(!chatHistory.length){
-    h+=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:20px">Pune o întrebare despre excursia ta...</div>`;
-  } else {
-    chatHistory.forEach(m=>{ h+=`<div class="chat-msg ${m.role==='user'?'chat-user':'chat-ai'}">${esc(m.content)}</div>`; });
-  }
+  if(!chatHistory.length){ h+=`<div class="text-sm text-muted" style="text-align:center;padding:20px">Pune o întrebare despre excursia ta...</div>`; }
+  else { chatHistory.forEach(m=>{ h+=`<div class="chat-msg ${m.role==='user'?'chat-user':'chat-ai'}">${esc(m.content)}</div>`; }); }
   h+=`</div>
     <div class="chat-input-row">
       <textarea id="chat-input" placeholder="ex: Ce obiective nu am rezervat?" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"></textarea>
-      <button class="btn btn-primary" onclick="sendChat()">Trimite</button>
+      <button class="btn btn-primary" onclick="sendChat()">➤</button>
     </div>
   </div></div>`;
   el.innerHTML=h;
@@ -1692,12 +1592,12 @@ function renderAssistant(){
 }
 
 function buildTripSummary(t){
-  const lines=[`=== EXCURSIE: ${t.name||'fără nume'} ===`,`Perioada: ${fmtDateRo(t.start)} → ${fmtDateRo(t.end)}`,`Destinații: ${t.destinations||'—'}`,`Persoane: ${(t.persons||[]).map(p=>p.name).join(', ')||'—'}`,'','--- TRANSPORT ---'];
-  (t.transport||[]).forEach(tr=>{ lines.push(`${ttLabel(tr.ttype)}: ${tr.from||'?'} → ${tr.to||'?'} | ${tr.depDate?fmtDateRo(tr.depDate):''} ${tr.depTime||''}`); });
-  lines.push('','--- CAZARE ---');
-  (t.accom||[]).forEach(a=>{ lines.push(`${a.accomType||'Hotel'}: ${a.hotel||'?'}, ${a.city||'?'} | ${fmtDateRo(a.checkin)} → ${fmtDateRo(a.checkout)}`); });
-  lines.push('','--- OBIECTIVE ---');
-  (t.objectives||[]).forEach(o=>{ lines.push(`${o.status||''} ${o.title||'?'} | ${o.city||''} | ${o.date?fmtDateRo(o.date):''} ${o.timeStart||''}`); });
+  const lines=[`EXCURSIE: ${t.name||'?'}`,`Perioada: ${fmtDateRo(t.start)} → ${fmtDateRo(t.end)}`,`Destinații: ${t.destinations||'—'}`,`Persoane: ${(t.persons||[]).map(p=>p.name).join(', ')||'—'}`,'TRANSPORT:'];
+  (t.transport||[]).forEach(tr=>lines.push(`${ttLabel(tr.ttype)}: ${tr.from||'?'} → ${tr.to||'?'} | ${tr.depDate?fmtDateRo(tr.depDate):''} ${tr.depTime||''}`));
+  lines.push('CAZARE:');
+  (t.accom||[]).forEach(a=>lines.push(`${a.hotel||'?'}, ${a.city||'?'} | ${fmtDateRo(a.checkin)} → ${fmtDateRo(a.checkout)}`));
+  lines.push('OBIECTIVE:');
+  (t.objectives||[]).forEach(o=>lines.push(`${o.status||''} ${o.title||'?'} | ${o.city||''} | ${o.date?fmtDateRo(o.date):''} ${o.timeStart||''}`));
   return lines.join('\n');
 }
 
@@ -1709,16 +1609,9 @@ window.sendChat = async function(){
   if(!apiKey){ alert('Introdu un API key Anthropic.'); return; }
   const t=trip();
   chatHistory.push({role:'user',content:msg});
-  input.value='';
-  renderAssistant();
+  input.value=''; renderAssistant();
   try {
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,
-        system:`Ești un asistent de călătorie. Datele excursiei:\n\n${buildTripSummary(t)}\n\nRăspunde concis în română.`,
-        messages:chatHistory.map(m=>({role:m.role,content:m.content}))})
-    });
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,system:`Ești asistent de călătorie. Date excursie:\n${buildTripSummary(t)}\nRăspunde concis în română.`,messages:chatHistory.map(m=>({role:m.role,content:m.content}))})});
     const data=await resp.json();
     if(data.error) throw new Error(data.error.message);
     chatHistory.push({role:'assistant',content:data.content?.[0]?.text||'Eroare.'});
@@ -1726,269 +1619,53 @@ window.sendChat = async function(){
   renderAssistant();
 }
 
-// ═══════════════════════════
+// ═══════════════════════════════════════
 // PDF EXPORT
-// ═══════════════════════════
+// ═══════════════════════════════════════
 window.exportPDF = function(){
   const t=trip(); if(!t){ alert('Selectează o excursie.'); return; }
   const w=window.open('','_blank');
-  let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(t.name||'Travel Plan')}</title>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:30px;line-height:1.5}h1{font-size:20px}h2{font-size:15px;background:#e8f0fe;padding:5px 10px;margin:18px 0 8px;border-left:4px solid #4f8ef7}h3{font-size:13px;color:#444;margin:10px 0 4px}table{width:100%;border-collapse:collapse;margin-bottom:10px}td,th{border:1px solid #ddd;padding:4px 7px}th{background:#f5f5f5}.done{text-decoration:line-through;color:#888}</style></head><body>`;
-  h+=`<h1>✈ ${esc(t.name||'Travel Plan')}</h1>`;
-  h+=`<p>${fmtDateRo(t.start)} → ${fmtDateRo(t.end)} | ${esc(t.destinations||'')} | ${(t.persons||[]).length} persoane</p>`;
-  h+=`<h2>👥 Persoane</h2><table><tr><th>Nume</th><th>Note</th></tr>`;
-  (t.persons||[]).forEach(p=>{ h+=`<tr><td>${esc(p.name)}</td><td>${esc(p.notes||'')}</td></tr>`; });
-  h+=`</table><h2>🚌 Transport</h2>`;
-  (t.transport||[]).forEach(tr=>{ h+=`<h3>${ttLabel(tr.ttype)}: ${esc(tr.from||'?')} → ${esc(tr.to||'?')}</h3><p>${fmtDateRo(tr.depDate)} ${tr.depTime||''} | Rezervare: ${esc(tr.reservation||'—')}</p>`; });
-  h+=`<h2>🏨 Cazare</h2>`;
-  (t.accom||[]).forEach(a=>{ const n=calcNights(a.checkin,a.checkout); h+=`<h3>${esc(a.hotel||'?')} — ${esc(a.city||'')}</h3><p>Check-in: ${fmtDateRo(a.checkin)} | Check-out: ${fmtDateRo(a.checkout)} (${n} nopți) | Rezervare: ${esc(a.reservation||'—')}</p>`; });
-  h+=`<h2>📍 Obiective</h2><table><tr><th>Titlu</th><th>Oraș</th><th>Data</th><th>Ora</th><th>Status</th></tr>`;
-  (t.objectives||[]).forEach(o=>{ h+=`<tr><td>${esc(o.title||'')}</td><td>${esc(o.city||'')}</td><td>${fmtDateRo(o.date)}</td><td>${o.timeStart||''}</td><td>${esc(o.status||'')}</td></tr>`; });
-  h+=`</table><h2>✅ To-Do</h2>`;
-  Object.entries(t.todo||{}).forEach(([cat,items])=>{ if(!items.length) return; h+=`<h3>${cat}</h3><ul>`; items.forEach(it=>{ h+=`<li class="${it.done?'done':''}">${it.done?'✓ ':''}${esc(it.text)}</li>`; }); h+=`</ul>`; });
-  h+=`</body></html>`;
-  w.document.write(h); w.document.close();
-  setTimeout(()=>w.print(),600);
+  let h=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${esc(t.name||'Travel')}</title><style>body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:20px;line-height:1.5}h1{font-size:18px}h2{font-size:14px;background:#e8f0fe;padding:4px 8px;margin:14px 0 6px;border-left:3px solid #4f8ef7}h3{font-size:12px;color:#444;margin:8px 0 3px}table{width:100%;border-collapse:collapse;margin-bottom:8px}td,th{border:1px solid #ddd;padding:3px 6px}th{background:#f5f5f5}.done{text-decoration:line-through;color:#888}</style></head><body>`;
+  h+=`<h1>✈ ${esc(t.name||'Travel Plan')}</h1><p>${fmtDateRo(t.start)} → ${fmtDateRo(t.end)} | ${esc(t.destinations||'')} | ${(t.persons||[]).length} persoane</p>`;
+  h+=`<h2>👥 Persoane</h2><table><tr><th>Nume</th><th>Note</th></tr>${(t.persons||[]).map(p=>`<tr><td>${esc(p.name)}</td><td>${esc(p.notes||'')}</td></tr>`).join('')}</table>`;
+  h+=`<h2>🚌 Transport</h2>`; (t.transport||[]).forEach(tr=>{ h+=`<h3>${ttLabel(tr.ttype)}: ${esc(tr.from||'?')} → ${esc(tr.to||'?')}</h3><p>${fmtDateRo(tr.depDate)} ${tr.depTime||''} | Rez: ${esc(tr.reservation||'—')} | ${tr.totalPrice||''} ${tr.totalCur||''}</p>`; });
+  h+=`<h2>🏨 Cazare</h2>`; (t.accom||[]).forEach(a=>{ const n=calcNights(a.checkin,a.checkout); h+=`<h3>${esc(a.hotel||'?')} — ${esc(a.city||'')}</h3><p>Check-in: ${fmtDateRo(a.checkin)} | Check-out: ${fmtDateRo(a.checkout)} (${n} nopți) | Rez: ${esc(a.reservation||'—')}</p>`; });
+  h+=`<h2>📍 Obiective</h2><table><tr><th>Titlu</th><th>Oraș</th><th>Data</th><th>Ora</th><th>Status</th><th>Preț</th></tr>${(t.objectives||[]).map(o=>`<tr><td>${esc(o.title||'')}</td><td>${esc(o.city||'')}</td><td>${fmtDateRo(o.date)}</td><td>${o.timeStart||''}</td><td>${esc(o.status||'')}</td><td>${o.ticketPrice||''} ${o.ticketCur||''}</td></tr>`).join('')}</table>`;
+  h+=`<h2>✅ To-Do</h2>`; Object.entries(t.todo||{}).forEach(([cat,items])=>{ if(!items.length) return; h+=`<h3>${cat}</h3><ul>${items.map(it=>`<li class="${it.done?'done':''}">${it.done?'✓ ':''}${esc(it.text)}</li>`).join('')}</ul>`; });
+  h+=`</body></html>`; w.document.write(h); w.document.close(); setTimeout(()=>w.print(),600);
 }
 
+// ═══════════════════════════════════════
+// EXPOSE GLOBALS
+// ═══════════════════════════════════════
+window.trip=trip; window.save=save; window.uid=uid; window.esc=esc; window.dToIso=dToIso;
+window.LUGGAGE_TYPES=LUGGAGE_TYPES; window.TICKET_PERIODS=TICKET_PERIODS;
+window.renderTransport=renderTransport; window.renderAccom=renderAccom;
+window.renderObj=renderObj; window.renderIdeas=renderIdeas;
+window.renderTodo=renderTodo; window.renderBudget=renderBudget;
+window.renderHome=renderHome; window.date3Html=date3Html;
+window.time24Html=time24Html; window.priceRow=priceRow;
+window.calcNights=calcNights; window.subtractMinutes=subtractMinutes;
+window.ttLabel=ttLabel; window.fmtDateRo=fmtDateRo;
 
-// ═══════════════════════════
-// MAPS — LEAFLET
-// ═══════════════════════════
-const miniMaps = {};
-
-function refreshMiniMap(containerId, lat, lng, title){
-  if(!lat||!lng) return;
-  setTimeout(()=>{
-    const el = document.getElementById(containerId);
-    if(!el) return;
-    if(miniMaps[containerId]){
-      miniMaps[containerId].setView([lat,lng],15);
-      return;
-    }
-    const map = L.map(containerId, {zoomControl:true}).setView([lat,lng],15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'© OpenStreetMap'
-    }).addTo(map);
-    const icon = L.divIcon({
-      className:'',
-      html:`<div style="background:#4f8ef7;border:2px solid white;border-radius:50%;width:14px;height:14px;box-shadow:0 2px 4px rgba(0,0,0,0.4)"></div>`,
-      iconSize:[14,14],iconAnchor:[7,7]
-    });
-    L.marker([lat,lng],{icon}).addTo(map).bindPopup(`<strong>${title||'Locație'}</strong>`);
-    miniMaps[containerId] = map;
-  }, 100);
-}
-
-function extractCoordsFromUrl(url, objIdx){
-  if(!url) return;
-  const coords = parseCoordsFromGMaps(url);
-  if(coords){
-    trip().objectives[objIdx].lat = coords.lat;
-    trip().objectives[objIdx].lng = coords.lng;
-    save(); renderObj();
-  }
-}
-
-function extractCoordsFromUrlAccom(url, acIdx){
-  if(!url) return;
-  const coords = parseCoordsFromGMaps(url);
-  if(coords){
-    trip().accom[acIdx].lat = coords.lat;
-    trip().accom[acIdx].lng = coords.lng;
-    save(); renderAccom();
-  }
-}
-
-function parseCoordsFromGMaps(url){
-  // Formats: @lat,lng or /lat,lng or ?q=lat,lng or ll=lat,lng
-  const patterns = [
-    /@(-?\d+\.?\d*),(-?\d+\.?\d*)/,
-    /[?&]q=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
-    /[?&]ll=(-?\d+\.?\d*),(-?\d+\.?\d*)/,
-    /\/(-?\d+\.?\d*),(-?\d+\.?\d*)/,
-  ];
-  for(const pat of patterns){
-    const m = url.match(pat);
-    if(m) return {lat:parseFloat(m[1]), lng:parseFloat(m[2])};
-  }
-  return null;
-}
-
-// Global map tab
-let globalMap = null;
-let globalMarkers = [];
-
-function renderMapTab(){
-  const t = trip(); if(!t) return;
-  const el = document.getElementById('tpane-map');
-  
-  const objs = (t.objectives||[]).filter(o=>o.lat&&o.lng);
-  const accoms = (t.accom||[]).filter(a=>a.lat&&a.lng);
-  const total = objs.length + accoms.length;
-
-  let h = `<div class="stitle">🗺 Hartă <span class="badge">${total} locații</span></div>`;
-  
-  if(!total){
-    h += `<div class="empty"><div class="emo">🗺</div><p>Adaugă coordonate la obiective și cazări pentru a le vedea pe hartă.</p><p style="margin-top:8px;font-size:12px">Mergi la 📍 Obiective sau 🏨 Cazare și completează câmpurile Latitudine / Longitudine sau lipește un link Google Maps.</p></div>`;
-    el.innerHTML = h;
-    return;
-  }
-
-  // Legend
-  h += `<div style="display:flex;gap:12px;margin-bottom:12px;flex-wrap:wrap;font-size:12px">
-    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#fb923c;border-radius:50%;display:inline-block"></span> Obiective (${objs.length})</span>
-    <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;background:#34d399;border-radius:50%;display:inline-block"></span> Cazări (${accoms.length})</span>
-  </div>`;
-  
-  h += `<div id="global-map" class="map-full"></div>`;
-  
-  // List of locations
-  h += `<div style="margin-top:16px">`;
-  if(objs.length){
-    h += `<div class="divlabel">📍 Obiective cu locație</div>`;
-    objs.forEach(o=>{
-      h += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;font-size:13px">
-        <span style="color:var(--orange)">📍</span>
-        <span style="flex:1">${esc(o.title||'Obiectiv')}</span>
-        <span style="color:var(--text3);font-size:11px">${o.lat}, ${o.lng}</span>
-        <a href="https://www.google.com/maps?q=${o.lat},${o.lng}" target="_blank" class="btn btn-ghost btn-sm">↗ Maps</a>
-      </div>`;
-    });
-  }
-  if(accoms.length){
-    h += `<div class="divlabel">🏨 Cazări cu locație</div>`;
-    accoms.forEach(a=>{
-      h += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:6px;font-size:13px">
-        <span style="color:var(--green)">🏨</span>
-        <span style="flex:1">${esc(a.hotel||'Cazare')}</span>
-        <span style="color:var(--text3);font-size:11px">${a.lat}, ${a.lng}</span>
-        <a href="https://www.google.com/maps?q=${a.lat},${a.lng}" target="_blank" class="btn btn-ghost btn-sm">↗ Maps</a>
-      </div>`;
-    });
-  }
-  h += `</div>`;
-  
-  el.innerHTML = h;
-  
-  // Init global map
-  setTimeout(()=>{
-    const mapEl = document.getElementById('global-map');
-    if(!mapEl) return;
-    
-    if(globalMap){ globalMap.remove(); globalMap=null; }
-    
-    const allPoints = [
-      ...objs.map(o=>({lat:o.lat,lng:o.lng,title:o.title||'Obiectiv',type:'obj',date:o.date,timeStart:o.timeStart})),
-      ...accoms.map(a=>({lat:a.lat,lng:a.lng,title:a.hotel||'Cazare',type:'accom'}))
-    ];
-    
-    const center = allPoints.length===1 
-      ? [allPoints[0].lat, allPoints[0].lng]
-      : [allPoints.reduce((s,p)=>s+p.lat,0)/allPoints.length, allPoints.reduce((s,p)=>s+p.lng,0)/allPoints.length];
-    
-    globalMap = L.map('global-map').setView(center, 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'© OpenStreetMap'
-    }).addTo(globalMap);
-    
-    // Add markers
-    allPoints.forEach((p,idx)=>{
-      const color = p.type==='accom' ? '#34d399' : '#fb923c';
-      const icon = L.divIcon({
-        className:'',
-        html:`<div style="background:${color};border:2px solid white;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:9px;color:white;font-weight:700">${p.type==='obj'?idx+1:'H'}</div>`,
-        iconSize:[16,16],iconAnchor:[8,8]
-      });
-      const popup = `<strong>${p.title}</strong>${p.date?'<br>'+p.date+' '+( p.timeStart||''):''}`;
-      L.marker([p.lat,p.lng],{icon}).addTo(globalMap).bindPopup(popup);
-    });
-    
-    // Draw route between objectives in date order
-    const sortedObjs = [...objs].sort((a,b)=>{
-      if(a.date&&b.date) return a.date.localeCompare(b.date);
-      return 0;
-    });
-    if(sortedObjs.length>1){
-      const latlngs = sortedObjs.map(o=>[o.lat,o.lng]);
-      L.polyline(latlngs, {color:'#4f8ef7',weight:2,opacity:0.6,dashArray:'6,6'}).addTo(globalMap);
-    }
-    
-    // Fit bounds
-    if(allPoints.length>1){
-      const bounds = L.latLngBounds(allPoints.map(p=>[p.lat,p.lng]));
-      globalMap.fitBounds(bounds, {padding:[30,30]});
-    }
-  }, 200);
-}
-
-// Init mini-maps after render
-function initMiniMapsAfterRender(){
-  const t = trip(); if(!t) return;
-  (t.objectives||[]).forEach(o=>{
-    if(o.lat&&o.lng) refreshMiniMap('minimap-obj-'+o.id, o.lat, o.lng, o.title);
-  });
-  (t.accom||[]).forEach(a=>{
-    if(a.lat&&a.lng) refreshMiniMap('minimap-ac-'+a.id, a.lat, a.lng, a.hotel);
-  });
-}
-
-
-// ═══════════════════════════
-// GLOBAL EXPOSE
-// ═══════════════════════════
-window.trip = trip;
-window.save = save;
-window.uid = uid;
-window.esc = esc;
-window.dToIso = dToIso;
-window.LUGGAGE_TYPES = LUGGAGE_TYPES;
-window.TICKET_PERIODS = TICKET_PERIODS;
-window.renderTransport = renderTransport;
-window.renderAccom = renderAccom;
-window.renderObj = renderObj;
-window.renderIdeas = renderIdeas;
-window.renderTodo = renderTodo;
-window.renderBudget = renderBudget;
-window.renderAssistant = renderAssistant;
-window.renderHome = renderHome;
-window.date3Html = date3Html;
-window.time24Html = time24Html;
-window.priceRow = priceRow;
-window.calcNights = calcNights;
-window.subtractMinutes = subtractMinutes;
-window.ttLabel = ttLabel;
-window.fmtDateRo = fmtDateRo;
-window.extractCoordsFromUrl = extractCoordsFromUrl;
-window.extractCoordsFromUrlAccom = extractCoordsFromUrlAccom;
-window.refreshMiniMap = refreshMiniMap;
-window.renderMapTab = renderMapTab;
-window.dToIso = dToIso;
-
-// ═══════════════════════════
+// ═══════════════════════════════════════
 // INIT
-// ═══════════════════════════
-const savedCode = localStorage.getItem('tp_family_code');
+// ═══════════════════════════════════════
+applyTheme();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/travel-planner/sw.js').catch(()=>{});
+}
+
+const savedCode=localStorage.getItem('tp_family_code');
 if(savedCode){
-  familyCode = savedCode;
-  document.getElementById('setup-code').value = savedCode;
-  startFirebaseSync().then(()=>{
-    showScreen('trips');
-    renderHome();
-  }).catch(()=>{
-    // Firebase failed, load local
-    loadLocal();
-    showScreen('trips');
-    renderHome();
-    setSyncStatus('error', '⚠ Offline — date locale');
-  });
+  familyCode=savedCode;
+  document.getElementById('setup-code').value=savedCode;
+  startFirebaseSync().then(()=>{ showScreen('trips'); renderHome(); })
+  .catch(()=>{ loadLocal(); showScreen('trips'); renderHome(); setSyncStatus('error'); });
 } else {
   showScreen('setup');
 }
-
-if("serviceWorker" in navigator){ navigator.serviceWorker.register("/travel-planner/sw.js").then(()=>console.log("SW registered")).catch(e=>console.log("SW error",e)); }
 </script>
 </body>
 </html>
